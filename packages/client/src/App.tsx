@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Toolbar, Tool } from "./ui/Toolbar";
 import { CanvasStage } from "./canvas/CanvasStage";
+import { Canvas3DStage } from "./canvas/Canvas3DStage";
 import { AuthModal } from "./ui/AuthModal";
 import { HomePage } from "./ui/HomePage";
 import { useOpQueue, CanvasObject } from "./state/opQueue";
@@ -17,6 +18,8 @@ import ConstraintSolverWorker from "./workers/constraintSolver.worker?worker";
 
 export default function App() {
   const [currentView, setCurrentView] = useState<"home" | "cad">("home");
+  const [canvasMode, setCanvasMode] = useState<"2D" | "3D">("2D");
+  const [extrudeDepth, setExtrudeDepth] = useState(40);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [anonClientId] = useState(() => uuidv4());
@@ -453,6 +456,8 @@ export default function App() {
         gridSnap={gridSnap}
         objectCount={objects.length}
         currentUser={currentUser}
+        canvasMode={canvasMode}
+        extrudeDepth={extrudeDepth}
         onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }}
         onSave={handleSave}
         onNavigateHome={() => setCurrentView("home")}
@@ -461,6 +466,8 @@ export default function App() {
         onZoomOut={handleZoomOut}
         onResetZoom={handleResetZoom}
         onToggleGridSnap={handleToggleGridSnap}
+        onToggleCanvasMode={() => setCanvasMode(m => m === "2D" ? "3D" : "2D")}
+        onChangeExtrudeDepth={setExtrudeDepth}
         connectionStatus={connectionStatus}
         peers={peers}
       />
@@ -468,27 +475,35 @@ export default function App() {
       {/* Main workspace (canvas + sidebar) */}
       <div style={{ display: "flex", flex: 1, position: "relative", overflow: "hidden" }}>
         
-        {/* Drawing canvas */}
+        {/* Drawing canvas (2D Konva Stage vs 3D WebGL Three.js Viewport) */}
         <div style={{ flex: 1, position: "relative" }}>
-          <CanvasStage
-            objects={previewObjects || objects}
-            peers={peers}
-            tool={tool}
-            zoom={zoom}
-            stageOffset={stageOffset}
-            gridSnap={gridSnap}
-            selectedPoints={selectedPoints}
-            selectedObjectIds={selectedObjectIds}
-            onSelectPoint={handleSelectPoint}
-            onSelectObject={handleSelectObject}
-            onObjectDragStart={handleDragStart}
-            onObjectDragMove={handleDragMove}
-            onObjectDragEnd={handleDragEnd}
-            onCreate={handleCreate}
-            onPointerMove={updateLocalCursor}
-            onZoomChange={setZoom}
-            onStageOffsetChange={setStageOffset}
-          />
+          {canvasMode === "3D" ? (
+            <Canvas3DStage
+              objects={previewObjects || objects}
+              peers={peers}
+              extrudeDepth={extrudeDepth}
+            />
+          ) : (
+            <CanvasStage
+              objects={previewObjects || objects}
+              peers={peers}
+              tool={tool}
+              zoom={zoom}
+              stageOffset={stageOffset}
+              gridSnap={gridSnap}
+              selectedPoints={selectedPoints}
+              selectedObjectIds={selectedObjectIds}
+              onSelectPoint={handleSelectPoint}
+              onSelectObject={handleSelectObject}
+              onObjectDragStart={handleDragStart}
+              onObjectDragMove={handleDragMove}
+              onObjectDragEnd={handleDragEnd}
+              onCreate={handleCreate}
+              onPointerMove={updateLocalCursor}
+              onZoomChange={setZoom}
+              onStageOffsetChange={setStageOffset}
+            />
+          )}
         </div>
 
         {/* Sidebar panel */}

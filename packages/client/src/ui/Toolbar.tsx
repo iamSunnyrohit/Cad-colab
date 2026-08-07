@@ -9,6 +9,8 @@ interface Props {
   gridSnap?: boolean;
   objectCount?: number;
   currentUser?: UserProfile | null;
+  canvasMode?: "2D" | "3D";
+  extrudeDepth?: number;
   onChange: (tool: Tool) => void;
   onSave: () => void;
   onNavigateHome?: () => void;
@@ -17,6 +19,8 @@ interface Props {
   onZoomOut?: () => void;
   onResetZoom?: () => void;
   onToggleGridSnap?: () => void;
+  onToggleCanvasMode?: () => void;
+  onChangeExtrudeDepth?: (depth: number) => void;
   connectionStatus?: "connected" | "disconnected" | "reconnecting";
   peers?: PeerPresence[];
 }
@@ -35,6 +39,8 @@ export function Toolbar({
   gridSnap = false,
   objectCount = 0,
   currentUser,
+  canvasMode = "2D",
+  extrudeDepth = 40,
   onChange,
   onSave,
   onNavigateHome,
@@ -43,6 +49,8 @@ export function Toolbar({
   onZoomOut,
   onResetZoom,
   onToggleGridSnap,
+  onToggleCanvasMode,
+  onChangeExtrudeDepth,
   connectionStatus = "connected",
   peers = []
 }: Props) {
@@ -120,6 +128,43 @@ export function Toolbar({
       </div>
 
       <div style={{ width: 1, height: 24, backgroundColor: "#e5e7eb", margin: "0 4px" }} />
+
+      {/* 2D / 3D Canvas Mode Toggle */}
+      <button
+        onClick={onToggleCanvasMode}
+        title="Toggle between 2D Sketch Editor and 3D WebGL Solid Extrusion Viewport"
+        style={{
+          padding: "6px 12px",
+          borderRadius: 6,
+          border: "1px solid #3b82f6",
+          background: canvasMode === "3D" ? "linear-gradient(135deg, #2563eb, #1d4ed8)" : "#ffffff",
+          color: canvasMode === "3D" ? "#ffffff" : "#2563eb",
+          cursor: "pointer",
+          fontWeight: 700,
+          fontSize: "0.85rem",
+          display: "flex",
+          alignItems: "center",
+          gap: 6
+        }}
+      >
+        {canvasMode === "3D" ? "🧊 3D Solid View" : "✏️ 2D Sketch"}
+      </button>
+
+      {/* Extrude Depth Slider in 3D mode */}
+      {canvasMode === "3D" && onChangeExtrudeDepth && (
+        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 8px", backgroundColor: "#f8fafc", borderRadius: 6, border: "1px solid #d1d5db" }}>
+          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#374151" }}>Extrude: {extrudeDepth}mm</span>
+          <input
+            type="range"
+            min="10"
+            max="200"
+            step="5"
+            value={extrudeDepth}
+            onChange={(e) => onChangeExtrudeDepth(Number(e.target.value))}
+            style={{ width: 80, cursor: "pointer" }}
+          />
+        </div>
+      )}
 
       {/* Grid Snapping & Viewport Controls */}
       <button

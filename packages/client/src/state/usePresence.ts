@@ -13,6 +13,7 @@ export function usePresence(socket: Socket | null, docId: string | null, localCl
 
     if (socket.connected) {
       setConnectionStatus("connected");
+      socket.emit("join-document", { docId, clientId: localClientId, userName });
     }
 
     const onConnect = () => {

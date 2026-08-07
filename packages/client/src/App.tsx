@@ -92,14 +92,17 @@ export default function App() {
 
   useEffect(() => {
     let activeSocket: Socket;
-    let currentDocId: string | null = null;
 
     (async () => {
-      const doc = await createDocument("Untitled Drawing");
-      currentDocId = doc._id;
-      setDocId(doc._id);
+      let targetDocId = docId;
+      if (!targetDocId) {
+        const doc = await createDocument("Untitled Drawing");
+        targetDocId = doc._id as string;
+        setDocId(doc._id);
+      }
+      if (!targetDocId) return;
 
-      const res = await loadObjects(doc._id);
+      const res = await loadObjects(targetDocId);
       initObjects(
         res.objects.map((o: any) => ({ _id: o._id, type: o.type, props: o.props })),
         res.constraints || [],
@@ -110,21 +113,23 @@ export default function App() {
       activeSocket = io("http://localhost:4000");
       setSocket(activeSocket);
 
-      activeSocket.emit("join-document", { docId: doc._id, clientId });
+      activeSocket.emit("join-document", { docId: targetDocId, clientId });
 
       // Handle socket reconnection catch-up sync
       activeSocket.on("connect", async () => {
-        if (lastSyncedSeqRef.current > 0 && currentDocId) {
-          activeSocket.emit("join-document", { docId: currentDocId, clientId });
-          try {
-            const { ops } = await fetchMissedOps(currentDocId, lastSyncedSeqRef.current);
-            if (Array.isArray(ops)) {
-              for (const missedOp of ops) {
-                applyServerOp(missedOp);
+        if (targetDocId) {
+          activeSocket.emit("join-document", { docId: targetDocId, clientId });
+          if (lastSyncedSeqRef.current > 0) {
+            try {
+              const { ops } = await fetchMissedOps(targetDocId, lastSyncedSeqRef.current);
+              if (Array.isArray(ops)) {
+                for (const missedOp of ops) {
+                  applyServerOp(missedOp);
+                }
               }
+            } catch (err) {
+              console.error("Failed to catch up missed ops:", err);
             }
-          } catch (err) {
-            console.error("Failed to catch up missed ops:", err);
           }
         }
       });
@@ -144,7 +149,7 @@ export default function App() {
         activeSocket.disconnect();
       }
     };
-  }, [clientId, initObjects, applyServerOp, rollbackOp]);
+  }, [docId, clientId, initObjects, applyServerOp, rollbackOp]);
 
   // Initialize OpSender helper
   useEffect(() => {

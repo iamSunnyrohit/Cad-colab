@@ -263,7 +263,7 @@ export function CanvasStage({
                 y={obj.props.y as number}
                 radius={obj.props.radius as number}
                 fill="rgba(0,0,0,0.001)"
-                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#16a34a")}
+                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#10b981")}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
                 hitStrokeWidth={12 / zoom}
                 draggable={tool === "select"}
@@ -320,7 +320,7 @@ export function CanvasStage({
                 width={obj.props.width as number}
                 height={obj.props.height as number}
                 fill="rgba(0,0,0,0.001)"
-                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#dc2626")}
+                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#ef4444")}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
                 hitStrokeWidth={12 / zoom}
                 draggable={tool === "select"}

@@ -59,10 +59,15 @@ export function Canvas3DStage({ objects, peers = [], extrudeDepth = 40 }: Props)
     gridHelper.position.y = 0;
     scene.add(gridHelper);
 
-    // 5. Materials
-    const lineMaterial = new THREE.MeshStandardMaterial({ color: 0x3b82f6, metalness: 0.2, roughness: 0.3 });
-    const circleMaterial = new THREE.MeshStandardMaterial({ color: 0x10b981, metalness: 0.3, roughness: 0.2 });
-    const rectMaterial = new THREE.MeshStandardMaterial({ color: 0xef4444, metalness: 0.3, roughness: 0.2 });
+    // 5. Helper to create material matching 2D sketch color
+    const getMaterialForObject = (obj: CanvasObject, defaultHex: string) => {
+      const hexColor = (obj.props as any).color || defaultHex;
+      return new THREE.MeshStandardMaterial({
+        color: new THREE.Color(hexColor),
+        metalness: 0.3,
+        roughness: 0.25
+      });
+    };
 
     // Center offset to align 2D canvas origin (0,0) with 3D space
     const centerOffsetX = -400;
@@ -78,7 +83,8 @@ export function Canvas3DStage({ objects, peers = [], extrudeDepth = 40 }: Props)
         const d = Math.max(5, extrudeDepth);
 
         const geo = new THREE.BoxGeometry(w, d, h);
-        const mesh = new THREE.Mesh(geo, rectMaterial);
+        const mat = getMaterialForObject(obj, "#ef4444");
+        const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x + w / 2, d / 2, z + h / 2);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
@@ -90,7 +96,8 @@ export function Canvas3DStage({ objects, peers = [], extrudeDepth = 40 }: Props)
         const d = Math.max(5, extrudeDepth);
 
         const geo = new THREE.CylinderGeometry(r, r, d, 32);
-        const mesh = new THREE.Mesh(geo, circleMaterial);
+        const mat = getMaterialForObject(obj, "#10b981");
+        const mesh = new THREE.Mesh(geo, mat);
         mesh.position.set(x, d / 2, z);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
@@ -110,7 +117,8 @@ export function Canvas3DStage({ objects, peers = [], extrudeDepth = 40 }: Props)
           const angle = Math.atan2(dz, dx);
 
           const geo = new THREE.BoxGeometry(length, d, 6);
-          const mesh = new THREE.Mesh(geo, lineMaterial);
+          const mat = getMaterialForObject(obj, "#2563eb");
+          const mesh = new THREE.Mesh(geo, mat);
           mesh.position.set((x1 + x2) / 2, d / 2, (z1 + z2) / 2);
           mesh.rotation.y = -angle;
           mesh.castShadow = true;

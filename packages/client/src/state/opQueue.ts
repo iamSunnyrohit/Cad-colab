@@ -5,7 +5,7 @@ import { transform } from "@cad-collab/shared";
 export interface CanvasObject {
   _id?: string;
   type: "line" | "circle" | "rectangle";
-  props: Record<string, number | number[]>;
+  props: Record<string, any>;
 }
 
 export interface DocumentState {

@@ -11,6 +11,7 @@ interface Props {
   currentUser?: UserProfile | null;
   canvasMode?: "2D" | "3D";
   extrudeDepth?: number;
+  activeColor?: string;
   onChange: (tool: Tool) => void;
   onSave: () => void;
   onNavigateHome?: () => void;
@@ -21,9 +22,21 @@ interface Props {
   onToggleGridSnap?: () => void;
   onToggleCanvasMode?: () => void;
   onChangeExtrudeDepth?: (depth: number) => void;
+  onChangeColor?: (color: string) => void;
   connectionStatus?: "connected" | "disconnected" | "reconnecting";
   peers?: PeerPresence[];
 }
+
+const COLOR_PALETTE = [
+  "#2563eb", // Blue
+  "#10b981", // Emerald
+  "#ef4444", // Crimson
+  "#f59e0b", // Amber
+  "#8b5cf6", // Purple
+  "#06b6d4", // Cyan
+  "#1e293b", // Dark Slate
+  "#ec4899"  // Pink
+];
 
 const tools: { id: Tool; label: string }[] = [
   { id: "select", label: "Select" },
@@ -41,6 +54,7 @@ export function Toolbar({
   currentUser,
   canvasMode = "2D",
   extrudeDepth = 40,
+  activeColor = "#2563eb",
   onChange,
   onSave,
   onNavigateHome,
@@ -51,6 +65,7 @@ export function Toolbar({
   onToggleGridSnap,
   onToggleCanvasMode,
   onChangeExtrudeDepth,
+  onChangeColor,
   connectionStatus = "connected",
   peers = []
 }: Props) {
@@ -105,6 +120,7 @@ export function Toolbar({
       )}
 
       {onNavigateHome && <div style={{ width: 1, height: 24, backgroundColor: "#e5e7eb", margin: "0 4px" }} />}
+
       {/* CAD Tool selection */}
       <div style={{ display: "flex", gap: 4 }}>
         {tools.map((t) => (
@@ -126,6 +142,43 @@ export function Toolbar({
           </button>
         ))}
       </div>
+
+      {/* Color Palette Swatches */}
+      {onChangeColor && (
+        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 6px", backgroundColor: "#f8fafc", borderRadius: 6, border: "1px solid #e5e7eb" }}>
+          {COLOR_PALETTE.map((c) => (
+            <div
+              key={c}
+              onClick={() => onChangeColor(c)}
+              title={`Select Color ${c}`}
+              style={{
+                width: 18,
+                height: 18,
+                borderRadius: "50%",
+                backgroundColor: c,
+                cursor: "pointer",
+                border: activeColor === c ? "2px solid #111827" : "1px solid rgba(0,0,0,0.15)",
+                transform: activeColor === c ? "scale(1.15)" : "scale(1)",
+                transition: "transform 0.1s ease"
+              }}
+            />
+          ))}
+          <input
+            type="color"
+            value={activeColor}
+            onChange={(e) => onChangeColor(e.target.value)}
+            title="Custom Color Picker"
+            style={{
+              width: 22,
+              height: 22,
+              border: "none",
+              background: "none",
+              cursor: "pointer",
+              padding: 0
+            }}
+          />
+        </div>
+      )}
 
       <div style={{ width: 1, height: 24, backgroundColor: "#e5e7eb", margin: "0 4px" }} />
 

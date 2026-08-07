@@ -21,6 +21,7 @@ interface Props {
   onPointerMove?: (pos: { x: number; y: number }) => void;
   onZoomChange?: (newZoom: number) => void;
   onStageOffsetChange?: (newOffset: { x: number; y: number }) => void;
+  activeColor?: string;
 }
 
 // Phase 4: Pan & Zoom, CAD Grid, Viewport Culling, Grid Snapping, and interactive drawing.
@@ -41,7 +42,8 @@ export function CanvasStage({
   onCreate,
   onPointerMove,
   onZoomChange,
-  onStageOffsetChange
+  onStageOffsetChange,
+  activeColor = "#2563eb"
 }: Props) {
   const stageWidth = window.innerWidth;
   const stageHeight = window.innerHeight - 56;
@@ -88,11 +90,11 @@ export function CanvasStage({
     }
 
     if (tool === "line") {
-      onCreate({ type: "line", props: { points: [pos.x, pos.y, pos.x + 100, pos.y] } });
+      onCreate({ type: "line", props: { points: [pos.x, pos.y, pos.x + 100, pos.y], color: activeColor } as any });
     } else if (tool === "circle") {
-      onCreate({ type: "circle", props: { x: pos.x, y: pos.y, radius: 40 } });
+      onCreate({ type: "circle", props: { x: pos.x, y: pos.y, radius: 40, color: activeColor } as any });
     } else if (tool === "rectangle") {
-      onCreate({ type: "rectangle", props: { x: pos.x, y: pos.y, width: 100, height: 60 } });
+      onCreate({ type: "rectangle", props: { x: pos.x, y: pos.y, width: 100, height: 60, color: activeColor } as any });
     }
   };
 
@@ -206,7 +208,7 @@ export function CanvasStage({
               <Line
                 key={obj._id || i}
                 points={points}
-                stroke={isSel ? "#3b82f6" : "#2563eb"}
+                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#2563eb")}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
                 hitStrokeWidth={16 / zoom}
                 draggable={tool === "select"}
@@ -261,7 +263,7 @@ export function CanvasStage({
                 y={obj.props.y as number}
                 radius={obj.props.radius as number}
                 fill="rgba(0,0,0,0.001)"
-                stroke={isSel ? "#3b82f6" : "#16a34a"}
+                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#16a34a")}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
                 hitStrokeWidth={12 / zoom}
                 draggable={tool === "select"}
@@ -318,7 +320,7 @@ export function CanvasStage({
                 width={obj.props.width as number}
                 height={obj.props.height as number}
                 fill="rgba(0,0,0,0.001)"
-                stroke={isSel ? "#3b82f6" : "#dc2626"}
+                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#dc2626")}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
                 hitStrokeWidth={12 / zoom}
                 draggable={tool === "select"}

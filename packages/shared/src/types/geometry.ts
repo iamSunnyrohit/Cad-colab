@@ -18,6 +18,7 @@ export interface LineObject extends BaseObject {
   type: "line";
   props: {
     points: number[];
+    color?: string;
   };
 }
 
@@ -27,6 +28,7 @@ export interface CircleObject extends BaseObject {
     x: number;
     y: number;
     radius: number;
+    color?: string;
   };
 }
 
@@ -37,6 +39,7 @@ export interface RectangleObject extends BaseObject {
     y: number;
     width: number;
     height: number;
+    color?: string;
   };
 }
 

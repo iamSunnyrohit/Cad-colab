@@ -20,6 +20,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<"home" | "cad">("home");
   const [canvasMode, setCanvasMode] = useState<"2D" | "3D">("2D");
   const [extrudeDepth, setExtrudeDepth] = useState(40);
+  const [activeColor, setActiveColor] = useState("#2563eb");
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [anonClientId] = useState(() => uuidv4());
@@ -463,6 +464,7 @@ export default function App() {
         currentUser={currentUser}
         canvasMode={canvasMode}
         extrudeDepth={extrudeDepth}
+        activeColor={activeColor}
         onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }}
         onSave={handleSave}
         onNavigateHome={() => setCurrentView("home")}
@@ -473,6 +475,7 @@ export default function App() {
         onToggleGridSnap={handleToggleGridSnap}
         onToggleCanvasMode={() => setCanvasMode(m => m === "2D" ? "3D" : "2D")}
         onChangeExtrudeDepth={setExtrudeDepth}
+        onChangeColor={setActiveColor}
         connectionStatus={connectionStatus}
         peers={peers}
       />
@@ -498,6 +501,7 @@ export default function App() {
               gridSnap={gridSnap}
               selectedPoints={selectedPoints}
               selectedObjectIds={selectedObjectIds}
+              activeColor={activeColor}
               onSelectPoint={handleSelectPoint}
               onSelectObject={handleSelectObject}
               onObjectDragStart={handleDragStart}

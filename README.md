@@ -40,7 +40,7 @@ npm run dev:client
 ## Roadmap
 
 - [x] Phase 0 — walking skeleton (this scaffold)
-- [ ] Phase 1 — OT for positional (move) ops
-- [ ] Phase 2 — constraint integration
+- [x] Phase 1 — OT for positional (move) ops
+- [x] Phase 2 — constraint integration
 - [ ] Phase 3 — network resilience & presence
 - [ ] Phase 4 — optimization & polish

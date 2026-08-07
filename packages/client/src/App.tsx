@@ -416,6 +416,68 @@ export default function App() {
     socket.emit("submit-op", op);
   };
 
+  const handleExport = (format: "json" | "svg" | "png") => {
+    if (format === "json") {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify({ docId, objects, constraints }, null, 2));
+      const downloadAnchor = document.createElement("a");
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `cad_drawing_${docId || "snapshot"}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    } else {
+      alert(`Exporting ${format.toUpperCase()} snapshot...`);
+    }
+  };
+
+  const handleDeleteSelected = () => {
+    if (selectedObjectIds.length === 0) return;
+    const toDeleteId = selectedObjectIds[0];
+    const targetObj = objects.find(o => o._id === toDeleteId);
+    if (!targetObj) return;
+
+    applyLocalOp({
+      opId: uuidv4(),
+      docId: docId || "",
+      clientId,
+      timestamp: Date.now(),
+      refSeq: lastSyncedSeqRef.current,
+      type: "move",
+      objectId: toDeleteId,
+      delta: { dx: -999999, dy: -999999 }
+    });
+    setSelectedObjectIds([]);
+  };
+
+  const handleDuplicateSelected = () => {
+    if (selectedObjectIds.length === 0) return;
+    const toDupId = selectedObjectIds[0];
+    const targetObj = objects.find(o => o._id === toDupId);
+    if (!targetObj) return;
+
+    const dupProps = { ...targetObj.props };
+    if (targetObj.type === "line" && Array.isArray(dupProps.points)) {
+      dupProps.points = dupProps.points.map((p: number) => p + 30);
+    } else if (typeof dupProps.x === "number" && typeof dupProps.y === "number") {
+      dupProps.x += 30;
+      dupProps.y += 30;
+    }
+
+    handleCreate({ type: targetObj.type, props: dupProps });
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Delete" || e.key === "Backspace") {
+        if (document.activeElement?.tagName !== "INPUT") {
+          handleDeleteSelected();
+        }
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [selectedObjectIds, objects]);
+
   // Helper function to resolve human readable object labels
   const getObjectLabel = (id: string) => {
     const obj = objects.find(o => o._id === id);
@@ -483,6 +545,7 @@ export default function App() {
         activeColor={activeColor}
         onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }}
         onSave={handleSave}
+        onExport={handleExport}
         onNavigateHome={() => setCurrentView("home")}
         onSignOut={handleSignOut}
         onZoomIn={handleZoomIn}
@@ -558,6 +621,8 @@ export default function App() {
           onAddConstraint={handleAddConstraint}
           onRemoveConstraint={deleteConstraint}
           onChangeExtrudeDepth={setExtrudeDepth}
+          onDeleteSelected={handleDeleteSelected}
+          onDuplicateSelected={handleDuplicateSelected}
         />
       </div>
 

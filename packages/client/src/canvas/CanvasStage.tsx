@@ -6,7 +6,7 @@ import { PeerPresence, filterVisibleObjects, snapPointToGrid, GeometryObject } f
 interface Props {
   objects: CanvasObject[];
   peers?: PeerPresence[];
-  tool: "select" | "pan" | "line" | "circle" | "rectangle";
+  tool: "select" | "pan" | "line" | "circle" | "rectangle" | "measure";
   zoom?: number;
   stageOffset?: { x: number; y: number };
   gridSnap?: boolean;
@@ -205,123 +205,184 @@ export function CanvasStage({
           if (obj.type === "line") {
             const points = obj.props.points as number[];
             const isSel = selectedObjectIds.includes(obj._id || "");
+            const len = Math.sqrt(Math.pow(points[2] - points[0], 2) + Math.pow(points[3] - points[1], 2));
+            const midX = (points[0] + points[2]) / 2;
+            const midY = (points[1] + points[3]) / 2 - 12 / zoom;
+
             return (
-              <Line
-                key={obj._id || i}
-                points={points}
-                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#2563eb")}
-                strokeWidth={isSel ? 4 / zoom : 2 / zoom}
-                hitStrokeWidth={16 / zoom}
-                draggable={tool === "select"}
-                onClick={(e) => {
-                  if (tool === "select" && obj._id) {
-                    e.cancelBubble = true;
-                    onSelectObject(obj._id);
-                  }
-                }}
-                onTap={(e) => {
-                  if (tool === "select" && obj._id) {
-                    e.cancelBubble = true;
-                    onSelectObject(obj._id);
-                  }
-                }}
-                onDragStart={(e) => {
-                  e.target.setAttrs({ lastX: 0, lastY: 0 });
-                  onObjectDragStart(i);
-                }}
-                onDragMove={(e) => {
-                  const lastX = e.target.getAttr("lastX") || 0;
-                  const lastY = e.target.getAttr("lastY") || 0;
-                  const currX = e.target.x();
-                  const currY = e.target.y();
-                  const dx = (currX - lastX) / zoom;
-                  const dy = (currY - lastY) / zoom;
-                  e.target.setAttrs({ lastX: currX, lastY: currY });
-                  if (dx !== 0 || dy !== 0) {
-                    onObjectDragMove(i, dx, dy);
-                  }
-                }}
-                onDragEnd={(e) => {
-                  const lastX = e.target.getAttr("lastX") || 0;
-                  const lastY = e.target.getAttr("lastY") || 0;
-                  const currX = e.target.x();
-                  const currY = e.target.y();
-                  const dx = (currX - lastX) / zoom;
-                  const dy = (currY - lastY) / zoom;
-                  e.target.x(0);
-                  e.target.y(0);
-                  onObjectDragEnd(i, dx, dy);
-                }}
-              />
+              <Group key={obj._id || i}>
+                <Line
+                  points={points}
+                  stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#2563eb")}
+                  strokeWidth={isSel ? 4 / zoom : 2 / zoom}
+                  hitStrokeWidth={16 / zoom}
+                  draggable={tool === "select"}
+                  onClick={(e) => {
+                    if (tool === "select" && obj._id) {
+                      e.cancelBubble = true;
+                      onSelectObject(obj._id);
+                    }
+                  }}
+                  onTap={(e) => {
+                    if (tool === "select" && obj._id) {
+                      e.cancelBubble = true;
+                      onSelectObject(obj._id);
+                    }
+                  }}
+                  onDragStart={(e) => {
+                    e.target.setAttrs({ lastX: 0, lastY: 0 });
+                    onObjectDragStart(i);
+                  }}
+                  onDragMove={(e) => {
+                    const lastX = e.target.getAttr("lastX") || 0;
+                    const lastY = e.target.getAttr("lastY") || 0;
+                    const currX = e.target.x();
+                    const currY = e.target.y();
+                    const dx = (currX - lastX) / zoom;
+                    const dy = (currY - lastY) / zoom;
+                    e.target.setAttrs({ lastX: currX, lastY: currY });
+                    if (dx !== 0 || dy !== 0) {
+                      onObjectDragMove(i, dx, dy);
+                    }
+                  }}
+                  onDragEnd={(e) => {
+                    const lastX = e.target.getAttr("lastX") || 0;
+                    const lastY = e.target.getAttr("lastY") || 0;
+                    const currX = e.target.x();
+                    const currY = e.target.y();
+                    const dx = (currX - lastX) / zoom;
+                    const dy = (currY - lastY) / zoom;
+                    e.target.x(0);
+                    e.target.y(0);
+                    onObjectDragEnd(i, dx, dy);
+                  }}
+                />
+                {isSel && (
+                  <Group x={midX} y={midY} listening={false}>
+                    <Rect
+                      x={-40 / zoom}
+                      y={-10 / zoom}
+                      width={80 / zoom}
+                      height={18 / zoom}
+                      fill="#0f172a"
+                      stroke="#38bdf8"
+                      strokeWidth={1 / zoom}
+                      cornerRadius={4 / zoom}
+                    />
+                    <Text
+                      x={-36 / zoom}
+                      y={-6 / zoom}
+                      text={`${len.toFixed(1)} mm`}
+                      fontSize={10 / zoom}
+                      fontFamily="JetBrains Mono, monospace"
+                      fontStyle="bold"
+                      fill="#38bdf8"
+                    />
+                  </Group>
+                )}
+              </Group>
             );
           }
           if (obj.type === "circle") {
             const isSel = selectedObjectIds.includes(obj._id || "");
+            const cx = obj.props.x as number;
+            const cy = obj.props.y as number;
+            const r = obj.props.radius as number;
+
             return (
-              <Circle
-                key={obj._id || i}
-                x={obj.props.x as number}
-                y={obj.props.y as number}
-                radius={obj.props.radius as number}
-                fill="rgba(0,0,0,0.001)"
-                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#10b981")}
-                strokeWidth={isSel ? 4 / zoom : 2 / zoom}
-                hitStrokeWidth={12 / zoom}
-                draggable={tool === "select"}
-                onClick={(e) => {
-                  if (tool === "select" && obj._id) {
-                    e.cancelBubble = true;
-                    onSelectObject(obj._id);
-                  }
-                }}
-                onTap={(e) => {
-                  if (tool === "select" && obj._id) {
-                    e.cancelBubble = true;
-                    onSelectObject(obj._id);
-                  }
-                }}
-                onDragStart={(e) => {
-                  e.target.setAttrs({
-                    lastX: e.target.x(),
-                    lastY: e.target.y()
-                  });
-                  onObjectDragStart(i);
-                }}
-                onDragMove={(e) => {
-                  const lastX = e.target.getAttr("lastX") || 0;
-                  const lastY = e.target.getAttr("lastY") || 0;
-                  const currX = e.target.x();
-                  const currY = e.target.y();
-                  const dx = (currX - lastX) / zoom;
-                  const dy = (currY - lastY) / zoom;
-                  e.target.setAttrs({ lastX: currX, lastY: currY });
-                  if (dx !== 0 || dy !== 0) {
-                    onObjectDragMove(i, dx, dy);
-                  }
-                }}
-                onDragEnd={(e) => {
-                  const lastX = e.target.getAttr("lastX") || 0;
-                  const lastY = e.target.getAttr("lastY") || 0;
-                  const currX = e.target.x();
-                  const currY = e.target.y();
-                  const dx = (currX - lastX) / zoom;
-                  const dy = (currY - lastY) / zoom;
-                  onObjectDragEnd(i, dx, dy);
-                }}
-              />
+              <Group key={obj._id || i}>
+                <Circle
+                  x={cx}
+                  y={cy}
+                  radius={r}
+                  fill="rgba(0,0,0,0.001)"
+                  stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#10b981")}
+                  strokeWidth={isSel ? 4 / zoom : 2 / zoom}
+                  hitStrokeWidth={12 / zoom}
+                  draggable={tool === "select"}
+                  onClick={(e) => {
+                    if (tool === "select" && obj._id) {
+                      e.cancelBubble = true;
+                      onSelectObject(obj._id);
+                    }
+                  }}
+                  onTap={(e) => {
+                    if (tool === "select" && obj._id) {
+                      e.cancelBubble = true;
+                      onSelectObject(obj._id);
+                    }
+                  }}
+                  onDragStart={(e) => {
+                    e.target.setAttrs({
+                      lastX: e.target.x(),
+                      lastY: e.target.y()
+                    });
+                    onObjectDragStart(i);
+                  }}
+                  onDragMove={(e) => {
+                    const lastX = e.target.getAttr("lastX") || 0;
+                    const lastY = e.target.getAttr("lastY") || 0;
+                    const currX = e.target.x();
+                    const currY = e.target.y();
+                    const dx = (currX - lastX) / zoom;
+                    const dy = (currY - lastY) / zoom;
+                    e.target.setAttrs({ lastX: currX, lastY: currY });
+                    if (dx !== 0 || dy !== 0) {
+                      onObjectDragMove(i, dx, dy);
+                    }
+                  }}
+                  onDragEnd={(e) => {
+                    const lastX = e.target.getAttr("lastX") || 0;
+                    const lastY = e.target.getAttr("lastY") || 0;
+                    const currX = e.target.x();
+                    const currY = e.target.y();
+                    const dx = (currX - lastX) / zoom;
+                    const dy = (currY - lastY) / zoom;
+                    onObjectDragEnd(i, dx, dy);
+                  }}
+                />
+                {isSel && (
+                  <Group x={cx} y={cy - r - 12 / zoom} listening={false}>
+                    <Rect
+                      x={-44 / zoom}
+                      y={-10 / zoom}
+                      width={88 / zoom}
+                      height={18 / zoom}
+                      fill="#0f172a"
+                      stroke="#10b981"
+                      strokeWidth={1 / zoom}
+                      cornerRadius={4 / zoom}
+                    />
+                    <Text
+                      x={-40 / zoom}
+                      y={-6 / zoom}
+                      text={`R = ${r.toFixed(1)} mm`}
+                      fontSize={10 / zoom}
+                      fontFamily="JetBrains Mono, monospace"
+                      fontStyle="bold"
+                      fill="#10b981"
+                    />
+                  </Group>
+                )}
+              </Group>
             );
           }
           if (obj.type === "rectangle") {
             const isSel = selectedObjectIds.includes(obj._id || "");
+            const rx = obj.props.x as number;
+            const ry = obj.props.y as number;
+            const rw = obj.props.width as number;
+            const rh = obj.props.height as number;
+
             return (
-              <Rect
-                key={obj._id || i}
-                x={obj.props.x as number}
-                y={obj.props.y as number}
-                width={obj.props.width as number}
-                height={obj.props.height as number}
-                fill="rgba(0,0,0,0.001)"
-                stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#ef4444")}
+              <Group key={obj._id || i}>
+                <Rect
+                  x={rx}
+                  y={ry}
+                  width={rw}
+                  height={rh}
+                  fill="rgba(0,0,0,0.001)"
+                  stroke={isSel ? "#3b82f6" : ((obj.props as any).color || "#ef4444")}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
                 hitStrokeWidth={12 / zoom}
                 draggable={tool === "select"}
@@ -366,10 +427,34 @@ export function CanvasStage({
                   onObjectDragEnd(i, dx, dy);
                 }}
               />
-            );
-          }
-          return null;
-        })}
+              {isSel && (
+                <Group x={rx + rw / 2} y={ry - 12 / zoom} listening={false}>
+                  <Rect
+                    x={-56 / zoom}
+                    y={-10 / zoom}
+                    width={112 / zoom}
+                    height={18 / zoom}
+                    fill="#0f172a"
+                    stroke="#ef4444"
+                    strokeWidth={1 / zoom}
+                    cornerRadius={4 / zoom}
+                  />
+                  <Text
+                    x={-52 / zoom}
+                    y={-6 / zoom}
+                    text={`${rw.toFixed(0)} × ${rh.toFixed(0)} mm`}
+                    fontSize={10 / zoom}
+                    fontFamily="JetBrains Mono, monospace"
+                    fontStyle="bold"
+                    fill="#ef4444"
+                  />
+                </Group>
+              )}
+            </Group>
+          );
+        }
+        return null;
+      })}
 
         {/* Render Anchor Handles in Select Mode */}
         {tool === "select" && visibleObjects.map((obj) => {

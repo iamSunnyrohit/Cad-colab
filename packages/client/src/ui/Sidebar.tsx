@@ -12,6 +12,8 @@ interface Props {
   onAddConstraint: (kind: "coincident" | "parallel" | "perpendicular" | "fixedDistance") => void;
   onRemoveConstraint: (id: string) => void;
   onChangeExtrudeDepth: (depth: number) => void;
+  onDeleteSelected?: () => void;
+  onDuplicateSelected?: () => void;
 }
 
 export function Sidebar({
@@ -23,7 +25,9 @@ export function Sidebar({
   extrudeDepth,
   onAddConstraint,
   onRemoveConstraint,
-  onChangeExtrudeDepth
+  onChangeExtrudeDepth,
+  onDeleteSelected,
+  onDuplicateSelected
 }: Props) {
   const selectedObj = objects.find(o => selectedObjectIds.includes(o._id || ""));
 
@@ -323,9 +327,31 @@ export function Sidebar({
         {/* Selected Shape Inspector */}
         {selectedObj ? (
           <div>
-            <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#38bdf8", marginBottom: 12, fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", gap: 6 }}>
-              <span>📈</span>
-              <span>{selectedObj.type.toUpperCase()}_{selectedObj._id?.slice(0, 4)}</span>
+            <div style={{ fontSize: "0.85rem", fontWeight: 700, color: "#38bdf8", marginBottom: 12, fontFamily: "'JetBrains Mono', monospace", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span>📈</span>
+                <span>{selectedObj.type.toUpperCase()}_{selectedObj._id?.slice(0, 4)}</span>
+              </div>
+              <div style={{ display: "flex", gap: 6 }}>
+                {onDuplicateSelected && (
+                  <button
+                    onClick={onDuplicateSelected}
+                    title="Duplicate shape"
+                    style={{ padding: "3px 8px", fontSize: "0.7rem", borderRadius: 4, border: "1px solid #1f293d", backgroundColor: "#161e2e", color: "#38bdf8", cursor: "pointer", fontWeight: 600 }}
+                  >
+                    📋 Duplicate
+                  </button>
+                )}
+                {onDeleteSelected && (
+                  <button
+                    onClick={onDeleteSelected}
+                    title="Delete shape"
+                    style={{ padding: "3px 8px", fontSize: "0.7rem", borderRadius: 4, border: "1px solid #ef4444", backgroundColor: "#450a0a", color: "#fca5a5", cursor: "pointer", fontWeight: 600 }}
+                  >
+                    🗑️ Delete
+                  </button>
+                )}
+              </div>
             </div>
 
             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>

@@ -1,7 +1,7 @@
 import React from "react";
 import { PeerPresence, UserProfile } from "@cad-collab/shared";
 
-export type Tool = "select" | "pan" | "line" | "circle" | "rectangle";
+export type Tool = "select" | "pan" | "line" | "circle" | "rectangle" | "measure";
 
 interface Props {
   tool: Tool;
@@ -14,6 +14,7 @@ interface Props {
   activeColor?: string;
   onChange: (tool: Tool) => void;
   onSave: () => void;
+  onExport?: (format: "json" | "svg" | "png") => void;
   onNavigateHome?: () => void;
   onSignOut?: () => void;
   onZoomIn?: () => void;
@@ -49,6 +50,7 @@ export function Toolbar({
   activeColor = "#2563eb",
   onChange,
   onSave,
+  onExport,
   onNavigateHome,
   onSignOut,
   onZoomIn,
@@ -61,6 +63,7 @@ export function Toolbar({
   connectionStatus = "connected",
   peers = []
 }: Props) {
+  const [showExportMenu, setShowExportMenu] = React.useState(false);
   return (
     <div style={{
       height: 52,
@@ -206,6 +209,63 @@ export function Toolbar({
           </div>
         )}
 
+        {/* Export CAD Dropdown */}
+        <div style={{ position: "relative" }}>
+          <button
+            onClick={() => setShowExportMenu(!showExportMenu)}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "1px solid #1f293d",
+              backgroundColor: "#161e2e",
+              color: "#38bdf8",
+              fontWeight: 600,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              gap: 6
+            }}
+          >
+            📥 Export ▾
+          </button>
+          {showExportMenu && (
+            <div style={{
+              position: "absolute",
+              top: 36,
+              right: 0,
+              backgroundColor: "#161e2e",
+              border: "1px solid #1f293d",
+              borderRadius: 6,
+              boxShadow: "0 8px 24px rgba(0,0,0,0.4)",
+              display: "flex",
+              flexDirection: "column",
+              width: 170,
+              overflow: "hidden",
+              zIndex: 100
+            }}>
+              <div
+                onClick={() => { setShowExportMenu(false); onExport && onExport("svg"); }}
+                style={{ padding: "8px 12px", fontSize: "0.8rem", color: "#f8fafc", cursor: "pointer", borderBottom: "1px solid #1f293d" }}
+              >
+                🖼️ Export SVG Vector
+              </div>
+              <div
+                onClick={() => { setShowExportMenu(false); onExport && onExport("png"); }}
+                style={{ padding: "8px 12px", fontSize: "0.8rem", color: "#f8fafc", cursor: "pointer", borderBottom: "1px solid #1f293d" }}
+              >
+                📸 Export Image (.PNG)
+              </div>
+              <div
+                onClick={() => { setShowExportMenu(false); onExport && onExport("json"); }}
+                style={{ padding: "8px 12px", fontSize: "0.8rem", color: "#f8fafc", cursor: "pointer" }}
+              >
+                💾 Export CAD JSON
+              </div>
+            </div>
+          )}
+        </div>
+
         {/* Share Button */}
         <button style={{
           padding: "6px 16px",
@@ -277,7 +337,8 @@ export function ToolDock({ tool, onChange }: ToolDockProps) {
     { id: "select", label: "Select", icon: "📈" },
     { id: "line", label: "Line", icon: "📏" },
     { id: "circle", label: "Circle", icon: "⭕" },
-    { id: "rectangle", label: "Rectangle", icon: "▭" }
+    { id: "rectangle", label: "Rectangle", icon: "▭" },
+    { id: "measure", label: "Measure Distance", icon: "📐" }
   ];
 
   return (

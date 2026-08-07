@@ -31,3 +31,8 @@ export async function updateObject(docId: string, objectId: string, props: unkno
   });
   return res.json();
 }
+
+export async function fetchMissedOps(docId: string, sinceSeq: number) {
+  const res = await fetch(`${API_BASE}/documents/${docId}/ops?sinceSeq=${sinceSeq}`);
+  return res.json();
+}

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { DocumentModel } from "../models/Document";
 import { ObjectEntity } from "../models/ObjectEntity";
 import { ConstraintEntity } from "../models/ConstraintEntity";
+import { OperationModel } from "../models/Operation";
 
 export const documentsRouter = Router();
 
@@ -22,6 +23,28 @@ documentsRouter.get("/:docId/objects", async (req, res) => {
     constraints,
     version: doc?.version || 0
   });
+});
+
+// Catch-up endpoint: fetch operations with seq > sinceSeq for network reconnection sync
+documentsRouter.get("/:docId/ops", async (req, res) => {
+  const sinceSeq = parseInt((req.query.sinceSeq as string) || "0", 10);
+  const ops = await OperationModel.find({
+    docId: req.params.docId,
+    seq: { $gt: sinceSeq }
+  }).sort({ seq: 1 }).lean();
+
+  const formattedOps = ops.map(c => ({
+    opId: c.opId,
+    docId: c.docId,
+    clientId: c.clientId,
+    type: c.type,
+    timestamp: c.timestamp,
+    seq: c.seq,
+    refSeq: c.refSeq,
+    ...(c.args || {})
+  }));
+
+  res.json({ ops: formattedOps });
 });
 
 // Save/create an object (Phase 0 stand-in for real op application)

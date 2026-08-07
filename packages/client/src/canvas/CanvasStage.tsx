@@ -1,9 +1,11 @@
 import React from "react";
-import { Stage, Layer, Line, Circle, Rect } from "react-konva";
+import { Stage, Layer, Line, Circle, Rect, Group, Text } from "react-konva";
 import { CanvasObject } from "../state/documentStore";
+import { PeerPresence } from "@cad-collab/shared";
 
 interface Props {
   objects: CanvasObject[];
+  peers?: PeerPresence[];
   tool: "select" | "line" | "circle" | "rectangle";
   selectedPoints: string[];
   selectedObjectIds: string[];
@@ -13,11 +15,13 @@ interface Props {
   onObjectDragMove: (index: number, dx: number, dy: number) => void;
   onObjectDragEnd: (index: number, dx: number, dy: number) => void;
   onCreate: (obj: CanvasObject) => void;
+  onPointerMove?: (pos: { x: number; y: number }) => void;
 }
 
-// Phase 0/1/2: click-to-place shapes, drag to move, selectable points for constraints.
+// Phase 0/1/2/3: click-to-place shapes, drag to move, selectable points for constraints, and live peer presence cursors.
 export function CanvasStage({
   objects,
+  peers = [],
   tool,
   selectedPoints,
   selectedObjectIds,
@@ -26,7 +30,8 @@ export function CanvasStage({
   onObjectDragStart,
   onObjectDragMove,
   onObjectDragEnd,
-  onCreate
+  onCreate,
+  onPointerMove
 }: Props) {
   const handleStageClick = (e: any) => {
     if (tool === "select") return;
@@ -41,8 +46,21 @@ export function CanvasStage({
     }
   };
 
+  const handleMouseMove = (e: any) => {
+    if (!onPointerMove) return;
+    const pos = e.target.getStage()?.getPointerPosition();
+    if (pos) {
+      onPointerMove({ x: Math.round(pos.x), y: Math.round(pos.y) });
+    }
+  };
+
   return (
-    <Stage width={window.innerWidth} height={window.innerHeight - 56} onClick={handleStageClick}>
+    <Stage
+      width={window.innerWidth}
+      height={window.innerHeight - 56}
+      onClick={handleStageClick}
+      onMouseMove={handleMouseMove}
+    >
       <Layer>
         {objects.map((obj, i) => {
           if (obj.type === "line") {
@@ -327,6 +345,47 @@ export function CanvasStage({
             );
           }
           return null;
+        })}
+
+        {/* Phase 3: Render Live Peer Presence Cursors */}
+        {peers.map((peer) => {
+          if (!peer.cursor) return null;
+          const { x, y } = peer.cursor;
+          const userColor = peer.color || "#3b82f6";
+          const label = peer.userName || `User ${peer.clientId.slice(0, 4)}`;
+
+          return (
+            <Group key={`cursor-${peer.socketId}`} x={x} y={y} listening={false}>
+              {/* Pointer Arrow */}
+              <Line
+                points={[0, 0, 0, 16, 5, 12, 10, 20, 13, 18, 8, 10, 15, 10]}
+                fill={userColor}
+                stroke="#ffffff"
+                strokeWidth={1}
+                closed
+              />
+              {/* User Label Badge */}
+              <Rect
+                x={14}
+                y={14}
+                width={label.length * 7 + 12}
+                height={20}
+                fill={userColor}
+                cornerRadius={4}
+                shadowColor="rgba(0,0,0,0.15)"
+                shadowBlur={4}
+                shadowOffset={{ x: 1, y: 1 }}
+              />
+              <Text
+                x={20}
+                y={18}
+                text={label}
+                fontSize={11}
+                fontStyle="bold"
+                fill="#ffffff"
+              />
+            </Group>
+          );
         })}
       </Layer>
     </Stage>

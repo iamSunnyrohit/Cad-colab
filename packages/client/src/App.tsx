@@ -2,7 +2,8 @@ import React, { useEffect, useState, useRef } from "react";
 import { Toolbar } from "./ui/Toolbar";
 import { CanvasStage } from "./canvas/CanvasStage";
 import { useOpQueue, CanvasObject } from "./state/opQueue";
-import { createDocument, loadObjects } from "./net/api";
+import { usePresence } from "./state/usePresence";
+import { createDocument, loadObjects, fetchMissedOps } from "./net/api";
 import { io, Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 import { OpSender } from "./net/opSender";
@@ -18,6 +19,7 @@ export default function App() {
   const [clientId] = useState(() => uuidv4());
 
   const { objects, constraints, lastSyncedSeq, initObjects, applyLocalOp, applyServerOp, rollbackOp } = useOpQueue(clientId);
+  const { peers, connectionStatus, updateLocalCursor } = usePresence(socket, docId, clientId);
   const [opSender, setOpSender] = useState<OpSender | null>(null);
 
   const [selectedPoints, setSelectedPoints] = useState<string[]>([]);
@@ -56,8 +58,11 @@ export default function App() {
 
   useEffect(() => {
     let activeSocket: Socket;
+    let currentDocId: string | null = null;
+
     (async () => {
       const doc = await createDocument("Untitled Drawing");
+      currentDocId = doc._id;
       setDocId(doc._id);
 
       const res = await loadObjects(doc._id);
@@ -71,7 +76,24 @@ export default function App() {
       activeSocket = io("http://localhost:4000");
       setSocket(activeSocket);
 
-      activeSocket.emit("join-document", doc._id);
+      activeSocket.emit("join-document", { docId: doc._id, clientId });
+
+      // Handle socket reconnection catch-up sync
+      activeSocket.on("connect", async () => {
+        if (lastSyncedSeqRef.current > 0 && currentDocId) {
+          activeSocket.emit("join-document", { docId: currentDocId, clientId });
+          try {
+            const { ops } = await fetchMissedOps(currentDocId, lastSyncedSeqRef.current);
+            if (Array.isArray(ops)) {
+              for (const missedOp of ops) {
+                applyServerOp(missedOp);
+              }
+            }
+          } catch (err) {
+            console.error("Failed to catch up missed ops:", err);
+          }
+        }
+      });
 
       activeSocket.on("op-applied", (op: any) => {
         applyServerOp(op);
@@ -88,7 +110,7 @@ export default function App() {
         activeSocket.disconnect();
       }
     };
-  }, [initObjects, applyServerOp, rollbackOp]);
+  }, [clientId, initObjects, applyServerOp, rollbackOp]);
 
   // Initialize OpSender helper
   useEffect(() => {
@@ -370,7 +392,13 @@ export default function App() {
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", overflow: "hidden", fontFamily: "system-ui, -apple-system, sans-serif", backgroundColor: "#f9fafb" }}>
       {/* Top toolbar */}
-      <Toolbar tool={tool} onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }} onSave={handleSave} />
+      <Toolbar
+        tool={tool}
+        onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }}
+        onSave={handleSave}
+        connectionStatus={connectionStatus}
+        peers={peers}
+      />
       
       {/* Main workspace (canvas + sidebar) */}
       <div style={{ display: "flex", flex: 1, position: "relative", overflow: "hidden" }}>
@@ -379,6 +407,7 @@ export default function App() {
         <div style={{ flex: 1, position: "relative" }}>
           <CanvasStage
             objects={previewObjects || objects}
+            peers={peers}
             tool={tool}
             selectedPoints={selectedPoints}
             selectedObjectIds={selectedObjectIds}
@@ -388,6 +417,7 @@ export default function App() {
             onObjectDragMove={handleDragMove}
             onObjectDragEnd={handleDragEnd}
             onCreate={handleCreate}
+            onPointerMove={updateLocalCursor}
           />
         </div>
 

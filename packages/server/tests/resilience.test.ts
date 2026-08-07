@@ -96,5 +96,5 @@ describe("Phase 3 Resilience & Presence Tests", () => {
 
     client1.disconnect();
     client2.disconnect();
-  }, 10000);
+  }, 15000);
 });

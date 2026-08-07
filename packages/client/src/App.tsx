@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Toolbar } from "./ui/Toolbar";
+import { Toolbar, Tool } from "./ui/Toolbar";
 import { CanvasStage } from "./canvas/CanvasStage";
 import { useOpQueue, CanvasObject } from "./state/opQueue";
 import { usePresence } from "./state/usePresence";
@@ -14,7 +14,10 @@ import ConstraintSolverWorker from "./workers/constraintSolver.worker?worker";
 
 export default function App() {
   const [docId, setDocId] = useState<string | null>(null);
-  const [tool, setTool] = useState<"select" | "line" | "circle" | "rectangle">("select");
+  const [tool, setTool] = useState<Tool>("select");
+  const [zoom, setZoom] = useState(1);
+  const [stageOffset, setStageOffset] = useState({ x: 0, y: 0 });
+  const [gridSnap, setGridSnap] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
   const [clientId] = useState(() => uuidv4());
 
@@ -28,6 +31,11 @@ export default function App() {
 
   const activeDragRef = useRef<{ index: number; pointIndex?: number } | null>(null);
   const workerRef = useRef<Worker | null>(null);
+
+  const handleZoomIn = () => setZoom(z => Math.min(5, Number((z * 1.2).toFixed(2))));
+  const handleZoomOut = () => setZoom(z => Math.max(0.2, Number((z / 1.2).toFixed(2))));
+  const handleResetZoom = () => { setZoom(1); setStageOffset({ x: 0, y: 0 }); };
+  const handleToggleGridSnap = () => setGridSnap(g => !g);
 
   const lastSyncedSeqRef = useRef(lastSyncedSeq);
   useEffect(() => {
@@ -394,8 +402,15 @@ export default function App() {
       {/* Top toolbar */}
       <Toolbar
         tool={tool}
+        zoom={zoom}
+        gridSnap={gridSnap}
+        objectCount={objects.length}
         onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }}
         onSave={handleSave}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onResetZoom={handleResetZoom}
+        onToggleGridSnap={handleToggleGridSnap}
         connectionStatus={connectionStatus}
         peers={peers}
       />
@@ -409,6 +424,9 @@ export default function App() {
             objects={previewObjects || objects}
             peers={peers}
             tool={tool}
+            zoom={zoom}
+            stageOffset={stageOffset}
+            gridSnap={gridSnap}
             selectedPoints={selectedPoints}
             selectedObjectIds={selectedObjectIds}
             onSelectPoint={handleSelectPoint}
@@ -418,6 +436,8 @@ export default function App() {
             onObjectDragEnd={handleDragEnd}
             onCreate={handleCreate}
             onPointerMove={updateLocalCursor}
+            onZoomChange={setZoom}
+            onStageOffsetChange={setStageOffset}
           />
         </div>
 

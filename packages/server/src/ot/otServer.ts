@@ -234,5 +234,13 @@ export async function processIncomingOp(op: Op): Promise<Op> {
     args
   });
 
+  // 6. Periodic log compaction (prune ops older than 200 sequence steps every 50 ops)
+  if (assignedSeq % 50 === 0 && assignedSeq > 200) {
+    const pruneBeforeSeq = assignedSeq - 200;
+    OperationModel.deleteMany({ docId, seq: { $lt: pruneBeforeSeq } }).catch(err => {
+      console.warn(`[op-compaction] error pruning ops for ${docId}:`, err);
+    });
+  }
+
   return transformedOp;
 }

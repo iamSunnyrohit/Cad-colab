@@ -1,24 +1,45 @@
 import React from "react";
 import { PeerPresence } from "@cad-collab/shared";
 
-type Tool = "select" | "line" | "circle" | "rectangle";
+export type Tool = "select" | "pan" | "line" | "circle" | "rectangle";
 
 interface Props {
   tool: Tool;
+  zoom?: number;
+  gridSnap?: boolean;
+  objectCount?: number;
   onChange: (tool: Tool) => void;
   onSave: () => void;
+  onZoomIn?: () => void;
+  onZoomOut?: () => void;
+  onResetZoom?: () => void;
+  onToggleGridSnap?: () => void;
   connectionStatus?: "connected" | "disconnected" | "reconnecting";
   peers?: PeerPresence[];
 }
 
 const tools: { id: Tool; label: string }[] = [
   { id: "select", label: "Select" },
+  { id: "pan", label: "Pan" },
   { id: "line", label: "Line" },
   { id: "circle", label: "Circle" },
   { id: "rectangle", label: "Rectangle" }
 ];
 
-export function Toolbar({ tool, onChange, onSave, connectionStatus = "connected", peers = [] }: Props) {
+export function Toolbar({
+  tool,
+  zoom = 1,
+  gridSnap = false,
+  objectCount = 0,
+  onChange,
+  onSave,
+  onZoomIn,
+  onZoomOut,
+  onResetZoom,
+  onToggleGridSnap,
+  connectionStatus = "connected",
+  peers = []
+}: Props) {
   const getStatusBadge = () => {
     if (connectionStatus === "connected") {
       return (
@@ -46,23 +67,61 @@ export function Toolbar({ tool, onChange, onSave, connectionStatus = "connected"
 
   return (
     <div style={{ height: 56, display: "flex", alignItems: "center", gap: 8, padding: "0 16px", borderBottom: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
-      {tools.map((t) => (
-        <button
-          key={t.id}
-          onClick={() => onChange(t.id)}
-          style={{
-            padding: "6px 12px",
-            borderRadius: 6,
-            border: "1px solid #d1d5db",
-            background: tool === t.id ? "#2563eb" : "white",
-            color: tool === t.id ? "white" : "#111827",
-            cursor: "pointer",
-            fontWeight: tool === t.id ? 600 : 400
-          }}
-        >
-          {t.label}
-        </button>
-      ))}
+      {/* CAD Tool selection */}
+      <div style={{ display: "flex", gap: 4 }}>
+        {tools.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => onChange(t.id)}
+            style={{
+              padding: "6px 12px",
+              borderRadius: 6,
+              border: "1px solid #d1d5db",
+              background: tool === t.id ? "#2563eb" : "white",
+              color: tool === t.id ? "white" : "#111827",
+              cursor: "pointer",
+              fontWeight: tool === t.id ? 600 : 400,
+              fontSize: "0.85rem"
+            }}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ width: 1, height: 24, backgroundColor: "#e5e7eb", margin: "0 4px" }} />
+
+      {/* Grid Snapping & Viewport Controls */}
+      <button
+        onClick={onToggleGridSnap}
+        title="Toggle 10px Grid Snapping"
+        style={{
+          padding: "6px 10px",
+          borderRadius: 6,
+          border: "1px solid #d1d5db",
+          background: gridSnap ? "#059669" : "#ffffff",
+          color: gridSnap ? "#ffffff" : "#374151",
+          cursor: "pointer",
+          fontWeight: gridSnap ? 600 : 400,
+          fontSize: "0.8rem"
+        }}
+      >
+        Grid Snap: {gridSnap ? "ON" : "OFF"}
+      </button>
+
+      {/* Zoom controls */}
+      <div style={{ display: "flex", alignItems: "center", gap: 2, border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", backgroundColor: "#ffffff" }}>
+        <button onClick={onZoomOut} style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", fontSize: "0.85rem", color: "#374151" }}>-</button>
+        <span onClick={onResetZoom} title="Reset zoom to 100%" style={{ fontSize: "0.75rem", fontWeight: 600, color: "#111827", cursor: "pointer", minWidth: 44, textAlign: "center" }}>
+          {Math.round(zoom * 100)}%
+        </span>
+        <button onClick={onZoomIn} style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", fontSize: "0.85rem", color: "#374151" }}>+</button>
+      </div>
+
+      {/* Object stats */}
+      <span style={{ fontSize: "0.75rem", color: "#6b7280", marginLeft: 4 }}>
+        Shapes: {objectCount}
+      </span>
 
       <div style={{ flex: 1 }} />
 

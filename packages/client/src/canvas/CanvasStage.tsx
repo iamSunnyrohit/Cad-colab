@@ -1,12 +1,15 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Stage, Layer, Line, Circle, Rect, Group, Text } from "react-konva";
 import { CanvasObject } from "../state/documentStore";
-import { PeerPresence } from "@cad-collab/shared";
+import { PeerPresence, filterVisibleObjects, snapPointToGrid, GeometryObject } from "@cad-collab/shared";
 
 interface Props {
   objects: CanvasObject[];
   peers?: PeerPresence[];
-  tool: "select" | "line" | "circle" | "rectangle";
+  tool: "select" | "pan" | "line" | "circle" | "rectangle";
+  zoom?: number;
+  stageOffset?: { x: number; y: number };
+  gridSnap?: boolean;
   selectedPoints: string[];
   selectedObjectIds: string[];
   onSelectPoint: (pointKey: string) => void;
@@ -16,13 +19,18 @@ interface Props {
   onObjectDragEnd: (index: number, dx: number, dy: number) => void;
   onCreate: (obj: CanvasObject) => void;
   onPointerMove?: (pos: { x: number; y: number }) => void;
+  onZoomChange?: (newZoom: number) => void;
+  onStageOffsetChange?: (newOffset: { x: number; y: number }) => void;
 }
 
-// Phase 0/1/2/3: click-to-place shapes, drag to move, selectable points for constraints, and live peer presence cursors.
+// Phase 4: Pan & Zoom, CAD Grid, Viewport Culling, Grid Snapping, and interactive drawing.
 export function CanvasStage({
   objects,
   peers = [],
   tool,
+  zoom = 1,
+  stageOffset = { x: 0, y: 0 },
+  gridSnap = false,
   selectedPoints,
   selectedObjectIds,
   onSelectPoint,
@@ -31,11 +39,53 @@ export function CanvasStage({
   onObjectDragMove,
   onObjectDragEnd,
   onCreate,
-  onPointerMove
+  onPointerMove,
+  onZoomChange,
+  onStageOffsetChange
 }: Props) {
+  const stageWidth = window.innerWidth;
+  const stageHeight = window.innerHeight - 56;
+
+  // Compute visible viewport bounds in stage coordinates for spatial culling
+  const viewportBounds = useMemo(() => {
+    const minX = -stageOffset.x / zoom;
+    const minY = -stageOffset.y / zoom;
+    const maxX = (stageWidth - stageOffset.x) / zoom;
+    const maxY = (stageHeight - stageOffset.y) / zoom;
+    return { minX, minY, maxX, maxY };
+  }, [stageOffset, zoom, stageWidth, stageHeight]);
+
+  // Apply spatial indexing culling to filter non-visible shapes
+  const visibleObjects = useMemo(() => {
+    // Convert CanvasObject array to GeometryObject schema for culling function
+    const geomObjects = objects.map(o => ({
+      id: o._id || "",
+      docId: "",
+      type: o.type,
+      version: 0,
+      props: o.props as any
+    })) as GeometryObject[];
+
+    const culled = filterVisibleObjects(geomObjects, viewportBounds, 100);
+    const culledIds = new Set(culled.map(c => c.id));
+    return objects.filter(o => o._id && culledIds.has(o._id));
+  }, [objects, viewportBounds]);
+
   const handleStageClick = (e: any) => {
-    if (tool === "select") return;
-    const pos = e.target.getStage().getPointerPosition();
+    if (tool === "select" || tool === "pan") return;
+    const stage = e.target.getStage();
+    const rawPos = stage.getPointerPosition();
+    if (!rawPos) return;
+
+    // Convert raw pointer position to transformed stage coordinate
+    let pos = {
+      x: (rawPos.x - stageOffset.x) / zoom,
+      y: (rawPos.y - stageOffset.y) / zoom
+    };
+
+    if (gridSnap) {
+      pos = snapPointToGrid(pos.x, pos.y, 10);
+    }
 
     if (tool === "line") {
       onCreate({ type: "line", props: { points: [pos.x, pos.y, pos.x + 100, pos.y] } });
@@ -48,31 +98,117 @@ export function CanvasStage({
 
   const handleMouseMove = (e: any) => {
     if (!onPointerMove) return;
-    const pos = e.target.getStage()?.getPointerPosition();
-    if (pos) {
-      onPointerMove({ x: Math.round(pos.x), y: Math.round(pos.y) });
+    const rawPos = e.target.getStage()?.getPointerPosition();
+    if (rawPos) {
+      const pos = {
+        x: Math.round((rawPos.x - stageOffset.x) / zoom),
+        y: Math.round((rawPos.y - stageOffset.y) / zoom)
+      };
+      onPointerMove(pos);
     }
+  };
+
+  const handleWheel = (e: any) => {
+    e.evt.preventDefault();
+    if (!onZoomChange || !onStageOffsetChange) return;
+
+    const scaleBy = 1.08;
+    const stage = e.target.getStage();
+    const oldZoom = zoom;
+    const pointer = stage.getPointerPosition();
+    if (!pointer) return;
+
+    const mousePointTo = {
+      x: (pointer.x - stageOffset.x) / oldZoom,
+      y: (pointer.y - stageOffset.y) / oldZoom
+    };
+
+    const newZoom = e.evt.deltaY < 0 ? oldZoom * scaleBy : oldZoom / scaleBy;
+    const clampedZoom = Math.max(0.2, Math.min(5, newZoom));
+
+    const newOffset = {
+      x: pointer.x - mousePointTo.x * clampedZoom,
+      y: pointer.y - mousePointTo.y * clampedZoom
+    };
+
+    onZoomChange(clampedZoom);
+    onStageOffsetChange(newOffset);
+  };
+
+  const handleDragEndStage = (e: any) => {
+    if (e.target.nodeType === "Stage" && onStageOffsetChange) {
+      onStageOffsetChange({ x: e.target.x(), y: e.target.y() });
+    }
+  };
+
+  // Generate CAD Grid lines dynamically
+  const renderGridLines = () => {
+    const lines = [];
+    const gridSize = 40 * zoom;
+    const startX = (stageOffset.x % gridSize) - gridSize;
+    const startY = (stageOffset.y % gridSize) - gridSize;
+
+    for (let x = startX; x < stageWidth + gridSize; x += gridSize) {
+      lines.push(
+        <Line
+          key={`vgrid-${x}`}
+          points={[x, 0, x, stageHeight]}
+          stroke="#e2e8f0"
+          strokeWidth={1}
+          listening={false}
+        />
+      );
+    }
+
+    for (let y = startY; y < stageHeight + gridSize; y += gridSize) {
+      lines.push(
+        <Line
+          key={`hgrid-${y}`}
+          points={[0, y, stageWidth, y]}
+          stroke="#e2e8f0"
+          strokeWidth={1}
+          listening={false}
+        />
+      );
+    }
+
+    return lines;
   };
 
   return (
     <Stage
-      width={window.innerWidth}
-      height={window.innerHeight - 56}
+      width={stageWidth}
+      height={stageHeight}
+      x={stageOffset.x}
+      y={stageOffset.y}
+      scaleX={zoom}
+      scaleY={zoom}
+      draggable={tool === "pan"}
       onClick={handleStageClick}
       onMouseMove={handleMouseMove}
+      onWheel={handleWheel}
+      onDragEnd={handleDragEndStage}
+      style={{ cursor: tool === "pan" ? "grab" : "crosshair" }}
     >
+      {/* Background CAD Grid Layer */}
+      <Layer listening={false}>
+        {renderGridLines()}
+      </Layer>
+
+      {/* Main Drawing Layer */}
       <Layer>
-        {objects.map((obj, i) => {
+        {visibleObjects.map((obj) => {
+          const i = objects.findIndex(o => o._id === obj._id);
           if (obj.type === "line") {
             const points = obj.props.points as number[];
             const isSel = selectedObjectIds.includes(obj._id || "");
             return (
               <Line
-                key={i}
+                key={obj._id || i}
                 points={points}
                 stroke={isSel ? "#3b82f6" : "#2563eb"}
-                strokeWidth={isSel ? 4 : 2}
-                draggable
+                strokeWidth={isSel ? 4 / zoom : 2 / zoom}
+                draggable={tool === "select"}
                 onClick={(e) => {
                   if (tool === "select") {
                     e.cancelBubble = true;
@@ -88,8 +224,8 @@ export function CanvasStage({
                   const lastY = e.target.getAttr("lastY") || 0;
                   const currX = e.target.x();
                   const currY = e.target.y();
-                  const dx = currX - lastX;
-                  const dy = currY - lastY;
+                  const dx = (currX - lastX) / zoom;
+                  const dy = (currY - lastY) / zoom;
                   e.target.setAttrs({ lastX: currX, lastY: currY });
                   if (dx !== 0 || dy !== 0) {
                     onObjectDragMove(i, dx, dy);
@@ -100,8 +236,8 @@ export function CanvasStage({
                   const lastY = e.target.getAttr("lastY") || 0;
                   const currX = e.target.x();
                   const currY = e.target.y();
-                  const dx = currX - lastX;
-                  const dy = currY - lastY;
+                  const dx = (currX - lastX) / zoom;
+                  const dy = (currY - lastY) / zoom;
                   e.target.x(0);
                   e.target.y(0);
                   onObjectDragEnd(i, dx, dy);
@@ -113,13 +249,13 @@ export function CanvasStage({
             const isSel = selectedObjectIds.includes(obj._id || "");
             return (
               <Circle
-                key={i}
+                key={obj._id || i}
                 x={obj.props.x as number}
                 y={obj.props.y as number}
                 radius={obj.props.radius as number}
                 stroke={isSel ? "#3b82f6" : "#16a34a"}
-                strokeWidth={isSel ? 4 : 2}
-                draggable
+                strokeWidth={isSel ? 4 / zoom : 2 / zoom}
+                draggable={tool === "select"}
                 onClick={(e) => {
                   if (tool === "select") {
                     e.cancelBubble = true;
@@ -138,8 +274,8 @@ export function CanvasStage({
                   const lastY = e.target.getAttr("lastY") || 0;
                   const currX = e.target.x();
                   const currY = e.target.y();
-                  const dx = currX - lastX;
-                  const dy = currY - lastY;
+                  const dx = (currX - lastX) / zoom;
+                  const dy = (currY - lastY) / zoom;
                   e.target.setAttrs({ lastX: currX, lastY: currY });
                   if (dx !== 0 || dy !== 0) {
                     onObjectDragMove(i, dx, dy);
@@ -150,8 +286,8 @@ export function CanvasStage({
                   const lastY = e.target.getAttr("lastY") || 0;
                   const currX = e.target.x();
                   const currY = e.target.y();
-                  const dx = currX - lastX;
-                  const dy = currY - lastY;
+                  const dx = (currX - lastX) / zoom;
+                  const dy = (currY - lastY) / zoom;
                   onObjectDragEnd(i, dx, dy);
                 }}
               />
@@ -161,14 +297,14 @@ export function CanvasStage({
             const isSel = selectedObjectIds.includes(obj._id || "");
             return (
               <Rect
-                key={i}
+                key={obj._id || i}
                 x={obj.props.x as number}
                 y={obj.props.y as number}
                 width={obj.props.width as number}
                 height={obj.props.height as number}
                 stroke={isSel ? "#3b82f6" : "#dc2626"}
-                strokeWidth={isSel ? 4 : 2}
-                draggable
+                strokeWidth={isSel ? 4 / zoom : 2 / zoom}
+                draggable={tool === "select"}
                 onClick={(e) => {
                   if (tool === "select") {
                     e.cancelBubble = true;
@@ -187,8 +323,8 @@ export function CanvasStage({
                   const lastY = e.target.getAttr("lastY") || 0;
                   const currX = e.target.x();
                   const currY = e.target.y();
-                  const dx = currX - lastX;
-                  const dy = currY - lastY;
+                  const dx = (currX - lastX) / zoom;
+                  const dy = (currY - lastY) / zoom;
                   e.target.setAttrs({ lastX: currX, lastY: currY });
                   if (dx !== 0 || dy !== 0) {
                     onObjectDragMove(i, dx, dy);
@@ -199,8 +335,8 @@ export function CanvasStage({
                   const lastY = e.target.getAttr("lastY") || 0;
                   const currX = e.target.x();
                   const currY = e.target.y();
-                  const dx = currX - lastX;
-                  const dy = currY - lastY;
+                  const dx = (currX - lastX) / zoom;
+                  const dy = (currY - lastY) / zoom;
                   onObjectDragEnd(i, dx, dy);
                 }}
               />
@@ -210,7 +346,8 @@ export function CanvasStage({
         })}
 
         {/* Render Anchor Handles in Select Mode */}
-        {tool === "select" && objects.map((obj, i) => {
+        {tool === "select" && visibleObjects.map((obj) => {
+          const i = objects.findIndex(o => o._id === obj._id);
           if (obj.type === "circle" && obj._id) {
             const cx = obj.props.x as number;
             const cy = obj.props.y as number;
@@ -220,10 +357,10 @@ export function CanvasStage({
                 key={`handle-${obj._id}-center`}
                 x={cx}
                 y={cy}
-                radius={6}
+                radius={6 / zoom}
                 fill={isSel ? "#3b82f6" : "#e5e7eb"}
                 stroke="#1f2937"
-                strokeWidth={1.5}
+                strokeWidth={1.5 / zoom}
                 onClick={(e) => {
                   e.cancelBubble = true;
                   onSelectPoint(`${obj._id}:center`);
@@ -240,10 +377,10 @@ export function CanvasStage({
                 key={`handle-${obj._id}-topLeft`}
                 x={rx}
                 y={ry}
-                radius={6}
+                radius={6 / zoom}
                 fill={isSel ? "#3b82f6" : "#e5e7eb"}
                 stroke="#1f2937"
-                strokeWidth={1.5}
+                strokeWidth={1.5 / zoom}
                 onClick={(e) => {
                   e.cancelBubble = true;
                   onSelectPoint(`${obj._id}:topLeft`);
@@ -261,10 +398,10 @@ export function CanvasStage({
                 <Circle
                   x={pts[0]}
                   y={pts[1]}
-                  radius={6}
+                  radius={6 / zoom}
                   fill={isSel0 ? "#3b82f6" : "#e5e7eb"}
                   stroke="#1f2937"
-                  strokeWidth={1.5}
+                  strokeWidth={1.5 / zoom}
                   onClick={(e) => {
                     e.cancelBubble = true;
                     onSelectPoint(`${obj._id}:0`);
@@ -281,8 +418,8 @@ export function CanvasStage({
                     const lastY = e.target.getAttr("lastY") || 0;
                     const currX = e.target.x();
                     const currY = e.target.y();
-                    const dx = currX - lastX;
-                    const dy = currY - lastY;
+                    const dx = (currX - lastX) / zoom;
+                    const dy = (currY - lastY) / zoom;
                     e.target.setAttrs({ lastX: currX, lastY: currY });
                     if (dx !== 0 || dy !== 0) {
                       onObjectDragMove(i, dx, dy);
@@ -294,8 +431,8 @@ export function CanvasStage({
                     const lastY = e.target.getAttr("lastY") || 0;
                     const currX = e.target.x();
                     const currY = e.target.y();
-                    const dx = currX - lastX;
-                    const dy = currY - lastY;
+                    const dx = (currX - lastX) / zoom;
+                    const dy = (currY - lastY) / zoom;
                     onObjectDragEnd(i, dx, dy);
                   }}
                 />
@@ -303,10 +440,10 @@ export function CanvasStage({
                 <Circle
                   x={pts[2]}
                   y={pts[3]}
-                  radius={6}
+                  radius={6 / zoom}
                   fill={isSel1 ? "#3b82f6" : "#e5e7eb"}
                   stroke="#1f2937"
-                  strokeWidth={1.5}
+                  strokeWidth={1.5 / zoom}
                   onClick={(e) => {
                     e.cancelBubble = true;
                     onSelectPoint(`${obj._id}:1`);
@@ -323,8 +460,8 @@ export function CanvasStage({
                     const lastY = e.target.getAttr("lastY") || 0;
                     const currX = e.target.x();
                     const currY = e.target.y();
-                    const dx = currX - lastX;
-                    const dy = currY - lastY;
+                    const dx = (currX - lastX) / zoom;
+                    const dy = (currY - lastY) / zoom;
                     e.target.setAttrs({ lastX: currX, lastY: currY });
                     if (dx !== 0 || dy !== 0) {
                       onObjectDragMove(i, dx, dy);
@@ -336,8 +473,8 @@ export function CanvasStage({
                     const lastY = e.target.getAttr("lastY") || 0;
                     const currX = e.target.x();
                     const currY = e.target.y();
-                    const dx = currX - lastX;
-                    const dy = currY - lastY;
+                    const dx = (currX - lastX) / zoom;
+                    const dy = (currY - lastY) / zoom;
                     onObjectDragEnd(i, dx, dy);
                   }}
                 />
@@ -358,29 +495,28 @@ export function CanvasStage({
             <Group key={`cursor-${peer.socketId}`} x={x} y={y} listening={false}>
               {/* Pointer Arrow */}
               <Line
-                points={[0, 0, 0, 16, 5, 12, 10, 20, 13, 18, 8, 10, 15, 10]}
+                points={[0, 0, 0, 16 / zoom, 5 / zoom, 12 / zoom, 10 / zoom, 20 / zoom, 13 / zoom, 18 / zoom, 8 / zoom, 10 / zoom, 15 / zoom, 10 / zoom]}
                 fill={userColor}
                 stroke="#ffffff"
-                strokeWidth={1}
+                strokeWidth={1 / zoom}
                 closed
               />
               {/* User Label Badge */}
               <Rect
-                x={14}
-                y={14}
-                width={label.length * 7 + 12}
-                height={20}
+                x={14 / zoom}
+                y={14 / zoom}
+                width={(label.length * 7 + 12) / zoom}
+                height={20 / zoom}
                 fill={userColor}
-                cornerRadius={4}
+                cornerRadius={4 / zoom}
                 shadowColor="rgba(0,0,0,0.15)"
-                shadowBlur={4}
-                shadowOffset={{ x: 1, y: 1 }}
+                shadowBlur={4 / zoom}
               />
               <Text
-                x={20}
-                y={18}
+                x={20 / zoom}
+                y={18 / zoom}
                 text={label}
-                fontSize={11}
+                fontSize={11 / zoom}
                 fontStyle="bold"
                 fill="#ffffff"
               />

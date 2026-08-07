@@ -12,5 +12,6 @@ export const computeResidualError = _computeResidualError;
 export * from "./types/geometry";
 export * from "./types/operations";
 export * from "./types/presence";
+export * from "./spatial/spatialIndex";
 
 

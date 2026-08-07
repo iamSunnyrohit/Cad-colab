@@ -43,4 +43,4 @@ npm run dev:client
 - [x] Phase 1 — OT for positional (move) ops
 - [x] Phase 2 — constraint integration
 - [x] Phase 3 — network resilience & presence
-- [ ] Phase 4 — optimization & polish
+- [x] Phase 4 — optimization & polish

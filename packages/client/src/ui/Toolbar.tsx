@@ -34,16 +34,8 @@ const COLOR_PALETTE = [
   "#f59e0b", // Amber
   "#8b5cf6", // Purple
   "#06b6d4", // Cyan
-  "#1e293b", // Dark Slate
+  "#f8fafc", // White
   "#ec4899"  // Pink
-];
-
-const tools: { id: Tool; label: string }[] = [
-  { id: "select", label: "Select" },
-  { id: "pan", label: "Pan" },
-  { id: "line", label: "Line" },
-  { id: "circle", label: "Circle" },
-  { id: "rectangle", label: "Rectangle" }
 ];
 
 export function Toolbar({
@@ -69,233 +61,177 @@ export function Toolbar({
   connectionStatus = "connected",
   peers = []
 }: Props) {
-  const getStatusBadge = () => {
-    if (connectionStatus === "connected") {
-      return (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.75rem", fontWeight: 600, color: "#16a34a", backgroundColor: "#dcfce7", padding: "4px 8px", borderRadius: 12 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#16a34a" }} />
-          Online
-        </span>
-      );
-    }
-    if (connectionStatus === "reconnecting") {
-      return (
-        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.75rem", fontWeight: 600, color: "#d97706", backgroundColor: "#fef3c7", padding: "4px 8px", borderRadius: 12 }}>
-          <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#d97706" }} />
-          Reconnecting...
-        </span>
-      );
-    }
-    return (
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 6, fontSize: "0.75rem", fontWeight: 600, color: "#dc2626", backgroundColor: "#fee2e2", padding: "4px 8px", borderRadius: 12 }}>
-        <span style={{ width: 6, height: 6, borderRadius: "50%", backgroundColor: "#dc2626" }} />
-        Offline
-      </span>
-    );
-  };
-
   return (
-    <div style={{ height: 56, display: "flex", alignItems: "center", gap: 8, padding: "0 16px", borderBottom: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
-      {/* Dashboard Home Button */}
-      {onNavigateHome && (
-        <button
+    <div style={{
+      height: 52,
+      backgroundColor: "#0b0f17",
+      borderBottom: "1px solid #1f293d",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "0 16px",
+      color: "#f8fafc",
+      fontFamily: "system-ui, -apple-system, sans-serif"
+    }}>
+      {/* Brand & Menu Links */}
+      <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <div
           onClick={onNavigateHome}
           title="Back to Home Dashboard"
-          style={{
-            padding: "6px 12px",
+          style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+        >
+          <div style={{
+            width: 28,
+            height: 28,
             borderRadius: 6,
-            border: "1px solid #d1d5db",
-            background: "#f8fafc",
-            color: "#1e293b",
-            cursor: "pointer",
+            background: "linear-gradient(135deg, #2563eb, #38bdf8)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 800,
+            fontSize: "0.9rem",
+            color: "#ffffff"
+          }}>
+            📐
+          </div>
+          <span style={{ fontSize: "1.05rem", fontWeight: 800, letterSpacing: "-0.02em", color: "#f8fafc" }}>
+            CAD Collab
+          </span>
+        </div>
+
+        {/* Top Navigation Links */}
+        <div style={{ display: "flex", gap: 16, fontSize: "0.85rem", color: "#94a3b8", fontWeight: 500 }}>
+          <span style={{ cursor: "pointer", color: "#f8fafc" }}>File</span>
+          <span style={{ cursor: "pointer" }}>Edit</span>
+          <span style={{ cursor: "pointer", color: "#38bdf8", borderBottom: "2px solid #38bdf8", paddingBottom: 14 }}>View</span>
+          <span style={{ cursor: "pointer" }}>Insert</span>
+          <span style={{ cursor: "pointer" }}>Modify</span>
+        </div>
+      </div>
+
+      {/* Center View Mode Switcher (Matching Image 3) */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        backgroundColor: "#161e2e",
+        padding: 3,
+        borderRadius: 8,
+        border: "1px solid #1f293d"
+      }}>
+        <button
+          onClick={() => canvasMode === "3D" && onToggleCanvasMode && onToggleCanvasMode()}
+          style={{
+            padding: "5px 14px",
+            borderRadius: 6,
+            border: "none",
+            backgroundColor: canvasMode === "2D" ? "#1e293b" : "transparent",
+            color: canvasMode === "2D" ? "#ffffff" : "#94a3b8",
+            fontSize: "0.8rem",
             fontWeight: 600,
-            fontSize: "0.85rem",
+            cursor: "pointer",
             display: "flex",
             alignItems: "center",
             gap: 6
           }}
         >
-          🏠 Dashboard
+          ✏️ Sketch
         </button>
-      )}
 
-      {onNavigateHome && <div style={{ width: 1, height: 24, backgroundColor: "#e5e7eb", margin: "0 4px" }} />}
+        <button
+          onClick={() => canvasMode === "2D" && onToggleCanvasMode && onToggleCanvasMode()}
+          style={{
+            padding: "5px 14px",
+            borderRadius: 6,
+            border: "none",
+            backgroundColor: canvasMode === "3D" ? "#2563eb" : "transparent",
+            color: canvasMode === "3D" ? "#ffffff" : "#94a3b8",
+            fontSize: "0.8rem",
+            fontWeight: 600,
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            gap: 6
+          }}
+        >
+          🧊 3D Solid View
+        </button>
 
-      {/* CAD Tool selection */}
-      <div style={{ display: "flex", gap: 4 }}>
-        {tools.map((t) => (
-          <button
-            key={t.id}
-            onClick={() => onChange(t.id)}
-            style={{
-              padding: "6px 12px",
-              borderRadius: 6,
-              border: "1px solid #d1d5db",
-              background: tool === t.id ? "#2563eb" : "white",
-              color: tool === t.id ? "white" : "#111827",
-              cursor: "pointer",
-              fontWeight: tool === t.id ? 600 : 400,
-              fontSize: "0.85rem"
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+        <button
+          style={{
+            padding: "5px 14px",
+            borderRadius: 6,
+            border: "none",
+            backgroundColor: "transparent",
+            color: "#64748b",
+            fontSize: "0.8rem",
+            fontWeight: 500,
+            cursor: "not-allowed",
+            display: "flex",
+            alignItems: "center",
+            gap: 6
+          }}
+        >
+          ▦ Mesh
+        </button>
       </div>
 
-      {/* Color Palette Swatches */}
-      {onChangeColor && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "3px 6px", backgroundColor: "#f8fafc", borderRadius: 6, border: "1px solid #e5e7eb" }}>
-          {COLOR_PALETTE.map((c) => (
-            <div
-              key={c}
-              onClick={() => onChangeColor(c)}
-              title={`Select Color ${c}`}
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: "50%",
-                backgroundColor: c,
-                cursor: "pointer",
-                border: activeColor === c ? "2px solid #111827" : "1px solid rgba(0,0,0,0.15)",
-                transform: activeColor === c ? "scale(1.15)" : "scale(1)",
-                transition: "transform 0.1s ease"
-              }}
+      {/* Right Controls (Share, Notifications, Settings, Profile) */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {/* Color Palette Swatches */}
+        {onChangeColor && (
+          <div style={{ display: "flex", alignItems: "center", gap: 4, padding: "2px 6px", backgroundColor: "#161e2e", borderRadius: 6, border: "1px solid #1f293d" }}>
+            {COLOR_PALETTE.map((c) => (
+              <div
+                key={c}
+                onClick={() => onChangeColor(c)}
+                title={`Select Color ${c}`}
+                style={{
+                  width: 16,
+                  height: 16,
+                  borderRadius: "50%",
+                  backgroundColor: c,
+                  cursor: "pointer",
+                  border: activeColor === c ? "2px solid #ffffff" : "1px solid rgba(0,0,0,0.3)",
+                  transform: activeColor === c ? "scale(1.2)" : "scale(1)"
+                }}
+              />
+            ))}
+            <input
+              type="color"
+              value={activeColor}
+              onChange={(e) => onChangeColor(e.target.value)}
+              title="Custom Color Picker"
+              style={{ width: 18, height: 18, border: "none", background: "none", cursor: "pointer", padding: 0 }}
             />
-          ))}
-          <input
-            type="color"
-            value={activeColor}
-            onChange={(e) => onChangeColor(e.target.value)}
-            title="Custom Color Picker"
-            style={{
-              width: 22,
-              height: 22,
-              border: "none",
-              background: "none",
-              cursor: "pointer",
-              padding: 0
-            }}
-          />
-        </div>
-      )}
+          </div>
+        )}
 
-      <div style={{ width: 1, height: 24, backgroundColor: "#e5e7eb", margin: "0 4px" }} />
-
-      {/* 2D / 3D Canvas Mode Toggle */}
-      <button
-        onClick={onToggleCanvasMode}
-        title="Toggle between 2D Sketch Editor and 3D WebGL Solid Extrusion Viewport"
-        style={{
-          padding: "6px 12px",
+        {/* Share Button */}
+        <button style={{
+          padding: "6px 16px",
           borderRadius: 6,
-          border: "1px solid #3b82f6",
-          background: canvasMode === "3D" ? "linear-gradient(135deg, #2563eb, #1d4ed8)" : "#ffffff",
-          color: canvasMode === "3D" ? "#ffffff" : "#2563eb",
-          cursor: "pointer",
-          fontWeight: 700,
+          border: "none",
+          backgroundColor: "#2563eb",
+          color: "#ffffff",
+          fontWeight: 600,
           fontSize: "0.85rem",
-          display: "flex",
-          alignItems: "center",
-          gap: 6
-        }}
-      >
-        {canvasMode === "3D" ? "🧊 3D Solid View" : "✏️ 2D Sketch"}
-      </button>
-
-      {/* Extrude Depth Slider in 3D mode */}
-      {canvasMode === "3D" && onChangeExtrudeDepth && (
-        <div style={{ display: "flex", alignItems: "center", gap: 6, padding: "0 8px", backgroundColor: "#f8fafc", borderRadius: 6, border: "1px solid #d1d5db" }}>
-          <span style={{ fontSize: "0.75rem", fontWeight: 600, color: "#374151" }}>Extrude: {extrudeDepth}mm</span>
-          <input
-            type="range"
-            min="10"
-            max="200"
-            step="5"
-            value={extrudeDepth}
-            onChange={(e) => onChangeExtrudeDepth(Number(e.target.value))}
-            style={{ width: 80, cursor: "pointer" }}
-          />
-        </div>
-      )}
-
-      {/* Grid Snapping & Viewport Controls */}
-      <button
-        onClick={onToggleGridSnap}
-        title="Toggle 10px Grid Snapping"
-        style={{
-          padding: "6px 10px",
-          borderRadius: 6,
-          border: "1px solid #d1d5db",
-          background: gridSnap ? "#059669" : "#ffffff",
-          color: gridSnap ? "#ffffff" : "#374151",
           cursor: "pointer",
-          fontWeight: gridSnap ? 600 : 400,
-          fontSize: "0.8rem"
-        }}
-      >
-        Grid Snap: {gridSnap ? "ON" : "OFF"}
-      </button>
+          boxShadow: "0 2px 8px rgba(37, 99, 235, 0.3)"
+        }}>
+          Share
+        </button>
 
-      {/* Zoom controls */}
-      <div style={{ display: "flex", alignItems: "center", gap: 2, border: "1px solid #d1d5db", borderRadius: 6, overflow: "hidden", backgroundColor: "#ffffff" }}>
-        <button onClick={onZoomOut} style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", fontSize: "0.85rem", color: "#374151" }}>-</button>
-        <span onClick={onResetZoom} title="Reset zoom to 100%" style={{ fontSize: "0.75rem", fontWeight: 600, color: "#111827", cursor: "pointer", minWidth: 44, textAlign: "center" }}>
-          {Math.round(zoom * 100)}%
-        </span>
-        <button onClick={onZoomIn} style={{ border: "none", background: "none", padding: "6px 8px", cursor: "pointer", fontSize: "0.85rem", color: "#374151" }}>+</button>
-      </div>
+        <span style={{ fontSize: "1.1rem", color: "#94a3b8", cursor: "pointer" }}>🔔</span>
+        <span style={{ fontSize: "1.1rem", color: "#94a3b8", cursor: "pointer" }}>⚙️</span>
 
-      {/* Object stats */}
-      <span style={{ fontSize: "0.75rem", color: "#6b7280", marginLeft: 4 }}>
-        Shapes: {objectCount}
-      </span>
-
-      <div style={{ flex: 1 }} />
-
-      {/* Connection status badge */}
-      {getStatusBadge()}
-
-      {/* Online collaborators avatar list */}
-      {peers.length > 0 && (
-        <div style={{ display: "flex", alignItems: "center", gap: 4, marginLeft: 8, paddingRight: 8, borderRight: "1px solid #e5e7eb" }}>
-          {peers.slice(0, 4).map((p) => (
-            <div
-              key={p.socketId}
-              title={p.userName}
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: "50%",
-                backgroundColor: p.color || "#2563eb",
-                color: "#ffffff",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "0.75rem",
-                fontWeight: 700,
-                border: "2px solid #ffffff",
-                boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
-              }}
-            >
-              {p.userName ? p.userName[0].toUpperCase() : "U"}
-            </div>
-          ))}
-          {peers.length > 4 && (
-            <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginLeft: 4 }}>
-              +{peers.length - 4}
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Authenticated user profile */}
-      {currentUser && (
-        <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 8, borderLeft: "1px solid #e5e7eb" }}>
+        {/* User Profile */}
+        {currentUser ? (
           <div
+            onClick={onSignOut}
+            title={`${currentUser.username} (Click to Sign Out)`}
             style={{
-              width: 30,
-              height: 30,
+              width: 32,
+              height: 32,
               borderRadius: "50%",
               backgroundColor: currentUser.color || "#2563eb",
               color: "#ffffff",
@@ -303,38 +239,96 @@ export function Toolbar({
               alignItems: "center",
               justifyContent: "center",
               fontWeight: 700,
-              fontSize: "0.8rem",
-              boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              border: "2px solid #1f293d"
             }}
           >
             {currentUser.username[0].toUpperCase()}
           </div>
-          <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#111827" }}>
-            {currentUser.username}
-          </span>
-          {onSignOut && (
-            <button
-              onClick={onSignOut}
-              title="Sign out of your account"
-              style={{
-                padding: "4px 8px",
-                fontSize: "0.75rem",
-                borderRadius: 4,
-                border: "1px solid #d1d5db",
-                backgroundColor: "#f3f4f6",
-                color: "#374151",
-                cursor: "pointer",
-                fontWeight: 500
-              }}
-            >
-              Sign Out
-            </button>
-          )}
-        </div>
-      )}
+        ) : (
+          <div style={{
+            width: 32,
+            height: 32,
+            borderRadius: "50%",
+            backgroundColor: "#1e293b",
+            color: "#94a3b8",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "0.9rem"
+          }}>
+            👤
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
 
-      <button onClick={onSave} style={{ padding: "6px 12px", borderRadius: 6, border: "1px solid #d1d5db", background: "white", cursor: "pointer", fontSize: "0.85rem", fontWeight: 500 }}>
-        Save snapshot
+// Left Vertical Tool Dock Component (Matching Image 2 & 3)
+interface ToolDockProps {
+  tool: Tool;
+  onChange: (tool: Tool) => void;
+}
+
+export function ToolDock({ tool, onChange }: ToolDockProps) {
+  const tools: { id: Tool; label: string; icon: string }[] = [
+    { id: "select", label: "Select", icon: "📈" },
+    { id: "line", label: "Line", icon: "📏" },
+    { id: "circle", label: "Circle", icon: "⭕" },
+    { id: "rectangle", label: "Rectangle", icon: "▭" }
+  ];
+
+  return (
+    <div style={{
+      width: 48,
+      backgroundColor: "#0e1420",
+      borderRight: "1px solid #1f293d",
+      display: "flex",
+      flexDirection: "column",
+      alignItems: "center",
+      padding: "12px 0",
+      gap: 12,
+      zIndex: 20
+    }}>
+      {tools.map((t) => (
+        <button
+          key={t.id}
+          onClick={() => onChange(t.id)}
+          title={t.label}
+          style={{
+            width: 34,
+            height: 34,
+            borderRadius: 6,
+            border: tool === t.id ? "1px solid #3b82f6" : "1px solid transparent",
+            backgroundColor: tool === t.id ? "#1e293b" : "transparent",
+            color: tool === t.id ? "#38bdf8" : "#94a3b8",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "1.1rem",
+            cursor: "pointer",
+            transition: "all 0.15s ease"
+          }}
+        >
+          {t.icon}
+        </button>
+      ))}
+
+      <div style={{ width: 24, height: 1, backgroundColor: "#1f293d", margin: "4px 0" }} />
+
+      <button title="Extrude 3D" style={{ width: 34, height: 34, borderRadius: 6, border: "none", backgroundColor: "transparent", color: "#94a3b8", fontSize: "1.1rem", cursor: "pointer" }}>
+        🧊
+      </button>
+      <button title="Constraints" style={{ width: 34, height: 34, borderRadius: 6, border: "none", backgroundColor: "transparent", color: "#94a3b8", fontSize: "1.1rem", cursor: "pointer" }}>
+        📐
+      </button>
+      <button title="Layers" style={{ width: 34, height: 34, borderRadius: 6, border: "none", backgroundColor: "transparent", color: "#94a3b8", fontSize: "1.1rem", cursor: "pointer" }}>
+        📑
+      </button>
+      <button title="History" style={{ width: 34, height: 34, borderRadius: 6, border: "none", backgroundColor: "transparent", color: "#94a3b8", fontSize: "1.1rem", cursor: "pointer" }}>
+        📜
       </button>
     </div>
   );

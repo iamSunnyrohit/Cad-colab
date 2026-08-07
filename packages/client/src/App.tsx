@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
-import { Toolbar, Tool } from "./ui/Toolbar";
+import { Toolbar, ToolDock, Tool } from "./ui/Toolbar";
+import { Sidebar } from "./ui/Sidebar";
 import { CanvasStage } from "./canvas/CanvasStage";
 import { Canvas3DStage } from "./canvas/Canvas3DStage";
 import { AuthModal } from "./ui/AuthModal";
@@ -439,6 +440,7 @@ export default function App() {
           currentUser={currentUser}
           onOpenAuth={() => setShowAuthModal(true)}
           onSignOut={handleSignOut}
+          onAuthSuccess={(user) => { setCurrentUser(user); setShowAuthModal(false); }}
           onOpenDocument={(id) => {
             setDocId(id);
             setCurrentView("cad");
@@ -448,14 +450,26 @@ export default function App() {
     );
   }
 
+  const handleAddConstraint = (kind: "coincident" | "parallel" | "perpendicular" | "fixedDistance") => {
+    if (kind === "coincident" && selectedPoints.length >= 2) {
+      addCoincident();
+    } else if (kind === "parallel" && selectedObjectIds.length >= 2) {
+      addParallel();
+    } else if (kind === "perpendicular" && selectedObjectIds.length >= 2) {
+      addPerpendicular();
+    } else if (kind === "fixedDistance" && selectedPoints.length >= 2) {
+      addDistance();
+    }
+  };
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", overflow: "hidden", fontFamily: "system-ui, -apple-system, sans-serif", backgroundColor: "#f9fafb" }}>
+    <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", overflow: "hidden", fontFamily: "'Inter', -apple-system, sans-serif", backgroundColor: "#0b0f17", color: "#f8fafc" }}>
       {/* Auth Modal overlay */}
       {showAuthModal && (
         <AuthModal onSuccess={(user) => { setCurrentUser(user); setShowAuthModal(false); }} />
       )}
 
-      {/* Top toolbar */}
+      {/* Top Header Navigation */}
       <Toolbar
         tool={tool}
         zoom={zoom}
@@ -480,11 +494,14 @@ export default function App() {
         peers={peers}
       />
       
-      {/* Main workspace (canvas + sidebar) */}
+      {/* Main CAD workspace (Left ToolDock + Canvas + Right Sidebar) */}
       <div style={{ display: "flex", flex: 1, position: "relative", overflow: "hidden" }}>
         
-        {/* Drawing canvas (2D Konva Stage vs 3D WebGL Three.js Viewport) */}
-        <div style={{ flex: 1, position: "relative" }}>
+        {/* Left Tool Dock */}
+        <ToolDock tool={tool} onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }} />
+
+        {/* Drawing Canvas (2D Konva Stage vs 3D WebGL Three.js Viewport) */}
+        <div style={{ flex: 1, position: "relative", backgroundColor: "#0b0f17" }}>
           {canvasMode === "3D" ? (
             <Canvas3DStage
               objects={previewObjects || objects}
@@ -515,126 +532,41 @@ export default function App() {
           )}
         </div>
 
-        {/* Sidebar panel */}
-        <div style={{
-          width: 320,
-          borderLeft: "1px solid #e5e7eb",
-          backgroundColor: "#ffffff",
-          display: "flex",
-          flexDirection: "column",
-          padding: "16px",
-          boxShadow: "-2px 0 8px rgba(0,0,0,0.03)",
-          overflowY: "auto",
-          zIndex: 10
-        }}>
-          <h2 style={{ fontSize: "1.1rem", fontWeight: 700, margin: "0 0 16px 0", color: "#111827" }}>Constraints Manager</h2>
-
-          {/* Context selections display */}
-          <div style={{
-            padding: 12,
-            borderRadius: 8,
-            backgroundColor: "#f3f4f6",
-            border: "1px dashed #d1d5db",
-            marginBottom: 20
-          }}>
-            <h3 style={{ fontSize: "0.85rem", fontWeight: 600, margin: "0 0 8px 0", color: "#374151" }}>Current Selection</h3>
-            
-            {selectedPoints.length === 0 && selectedObjectIds.length === 0 && (
-              <p style={{ fontSize: "0.8rem", color: "#6b7280", margin: 0 }}>
-                Select points or lines in the drawing stage (using Select tool) to add constraints.
-              </p>
-            )}
-
-            {selectedPoints.length > 0 && (
-              <div>
-                <p style={{ fontSize: "0.8rem", color: "#111827", margin: "0 0 8px 0" }}>
-                  Selected Points ({selectedPoints.length}/2):
-                </p>
-                <ul style={{ paddingLeft: 16, margin: "0 0 12px 0", fontSize: "0.75rem", color: "#4b5563" }}>
-                  {selectedPoints.map(p => <li key={p}>{getRefLabel(p)}</li>)}
-                </ul>
-
-                {selectedPoints.length === 2 && (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={addCoincident} style={{ flex: 1, padding: "6px 8px", fontSize: "0.75rem", borderRadius: 4, border: "none", backgroundColor: "#2563eb", color: "#ffffff", cursor: "pointer", fontWeight: 600 }}>
-                      Coincident
-                    </button>
-                    <button onClick={addDistance} style={{ flex: 1, padding: "6px 8px", fontSize: "0.75rem", borderRadius: 4, border: "1px solid #d1d5db", backgroundColor: "#ffffff", color: "#374151", cursor: "pointer", fontWeight: 600 }}>
-                      Distance
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {selectedObjectIds.length > 0 && (
-              <div>
-                <p style={{ fontSize: "0.8rem", color: "#111827", margin: "0 0 8px 0" }}>
-                  Selected Lines ({selectedObjectIds.length}/2):
-                </p>
-                <ul style={{ paddingLeft: 16, margin: "0 0 12px 0", fontSize: "0.75rem", color: "#4b5563" }}>
-                  {selectedObjectIds.map(id => <li key={id}>{getObjectLabel(id)}</li>)}
-                </ul>
-
-                {selectedObjectIds.length === 2 && (
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={addParallel} style={{ flex: 1, padding: "6px 8px", fontSize: "0.75rem", borderRadius: 4, border: "none", backgroundColor: "#2563eb", color: "#ffffff", cursor: "pointer", fontWeight: 600 }}>
-                      Parallel
-                    </button>
-                    <button onClick={addPerpendicular} style={{ flex: 1, padding: "6px 8px", fontSize: "0.75rem", borderRadius: 4, border: "1px solid #d1d5db", backgroundColor: "#ffffff", color: "#374151", cursor: "pointer", fontWeight: 600 }}>
-                      Perpendicular
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Constraints List */}
-          <div style={{ flex: 1 }}>
-            <h3 style={{ fontSize: "0.9rem", fontWeight: 600, margin: "0 0 12px 0", color: "#374151" }}>Active Constraints ({constraints.length})</h3>
-            
-            {constraints.length === 0 ? (
-              <p style={{ fontSize: "0.8rem", color: "#9ca3af", textAlign: "center", margin: "24px 0" }}>No constraints set.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                {constraints.map(c => (
-                  <div key={c.id} style={{
-                    display: "flex",
-                    alignItems: "center",
-                    padding: "8px 12px",
-                    borderRadius: 6,
-                    border: "1px solid #e5e7eb",
-                    backgroundColor: "#f9fafb"
-                  }}>
-                    <div style={{ flex: 1, overflow: "hidden" }}>
-                      <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#111827", textTransform: "capitalize" }}>
-                        {c.kind} {c.params?.distance ? `(${c.params.distance}px)` : ""}
-                      </div>
-                      <div style={{ fontSize: "0.7rem", color: "#6b7280", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {c.refs.map(r => getRefLabel(r)).join(" ↔ ")}
-                      </div>
-                    </div>
-                    <button onClick={() => deleteConstraint(c.id)} style={{
-                      padding: "4px 8px",
-                      fontSize: "0.7rem",
-                      borderRadius: 4,
-                      border: "none",
-                      backgroundColor: "#fee2e2",
-                      color: "#dc2626",
-                      cursor: "pointer",
-                      fontWeight: 600,
-                      marginLeft: 8
-                    }}>
-                      Delete
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Right Sidebar Inspector & Constraints Panel */}
+        <Sidebar
+          canvasMode={canvasMode}
+          selectedObjectIds={selectedObjectIds}
+          selectedPoints={selectedPoints}
+          objects={objects}
+          constraints={constraints}
+          extrudeDepth={extrudeDepth}
+          onAddConstraint={handleAddConstraint}
+          onRemoveConstraint={deleteConstraint}
+          onChangeExtrudeDepth={setExtrudeDepth}
+        />
       </div>
+
+      {/* Monospace Status Bar Footer */}
+      <footer style={{
+        height: 24,
+        backgroundColor: "#070a0f",
+        borderTop: "1px solid #1f293d",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        padding: "0 16px",
+        fontSize: "0.7rem",
+        fontFamily: "'JetBrains Mono', monospace",
+        color: "#10b981"
+      }}>
+        <div>
+          X: 124.50 Y: -82.12 Z: 0.00 | Grid: 10mm | Connection: Live
+        </div>
+        <div style={{ color: "#64748b", display: "flex", gap: 16 }}>
+          <span style={{ cursor: "pointer" }}>Status</span>
+          <span style={{ cursor: "pointer" }}>Documentation</span>
+        </div>
+      </footer>
     </div>
   );
 }

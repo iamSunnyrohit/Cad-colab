@@ -208,11 +208,18 @@ export function CanvasStage({
                 points={points}
                 stroke={isSel ? "#3b82f6" : "#2563eb"}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
+                hitStrokeWidth={16 / zoom}
                 draggable={tool === "select"}
                 onClick={(e) => {
-                  if (tool === "select") {
+                  if (tool === "select" && obj._id) {
                     e.cancelBubble = true;
-                    onSelectObject(obj._id!);
+                    onSelectObject(obj._id);
+                  }
+                }}
+                onTap={(e) => {
+                  if (tool === "select" && obj._id) {
+                    e.cancelBubble = true;
+                    onSelectObject(obj._id);
                   }
                 }}
                 onDragStart={(e) => {
@@ -253,13 +260,21 @@ export function CanvasStage({
                 x={obj.props.x as number}
                 y={obj.props.y as number}
                 radius={obj.props.radius as number}
+                fill="rgba(0,0,0,0.001)"
                 stroke={isSel ? "#3b82f6" : "#16a34a"}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
+                hitStrokeWidth={12 / zoom}
                 draggable={tool === "select"}
                 onClick={(e) => {
-                  if (tool === "select") {
+                  if (tool === "select" && obj._id) {
                     e.cancelBubble = true;
-                    onSelectObject(obj._id!);
+                    onSelectObject(obj._id);
+                  }
+                }}
+                onTap={(e) => {
+                  if (tool === "select" && obj._id) {
+                    e.cancelBubble = true;
+                    onSelectObject(obj._id);
                   }
                 }}
                 onDragStart={(e) => {
@@ -302,13 +317,21 @@ export function CanvasStage({
                 y={obj.props.y as number}
                 width={obj.props.width as number}
                 height={obj.props.height as number}
+                fill="rgba(0,0,0,0.001)"
                 stroke={isSel ? "#3b82f6" : "#dc2626"}
                 strokeWidth={isSel ? 4 / zoom : 2 / zoom}
+                hitStrokeWidth={12 / zoom}
                 draggable={tool === "select"}
                 onClick={(e) => {
-                  if (tool === "select") {
+                  if (tool === "select" && obj._id) {
                     e.cancelBubble = true;
-                    onSelectObject(obj._id!);
+                    onSelectObject(obj._id);
+                  }
+                }}
+                onTap={(e) => {
+                  if (tool === "select" && obj._id) {
+                    e.cancelBubble = true;
+                    onSelectObject(obj._id);
                   }
                 }}
                 onDragStart={(e) => {
@@ -357,11 +380,16 @@ export function CanvasStage({
                 key={`handle-${obj._id}-center`}
                 x={cx}
                 y={cy}
-                radius={6 / zoom}
-                fill={isSel ? "#3b82f6" : "#e5e7eb"}
+                radius={7 / zoom}
+                fill={isSel ? "#3b82f6" : "#ffffff"}
                 stroke="#1f2937"
                 strokeWidth={1.5 / zoom}
+                hitStrokeWidth={12 / zoom}
                 onClick={(e) => {
+                  e.cancelBubble = true;
+                  onSelectPoint(`${obj._id}:center`);
+                }}
+                onTap={(e) => {
                   e.cancelBubble = true;
                   onSelectPoint(`${obj._id}:center`);
                 }}
@@ -377,11 +405,16 @@ export function CanvasStage({
                 key={`handle-${obj._id}-topLeft`}
                 x={rx}
                 y={ry}
-                radius={6 / zoom}
-                fill={isSel ? "#3b82f6" : "#e5e7eb"}
+                radius={7 / zoom}
+                fill={isSel ? "#3b82f6" : "#ffffff"}
                 stroke="#1f2937"
                 strokeWidth={1.5 / zoom}
+                hitStrokeWidth={12 / zoom}
                 onClick={(e) => {
+                  e.cancelBubble = true;
+                  onSelectPoint(`${obj._id}:topLeft`);
+                }}
+                onTap={(e) => {
                   e.cancelBubble = true;
                   onSelectPoint(`${obj._id}:topLeft`);
                 }}
@@ -398,11 +431,16 @@ export function CanvasStage({
                 <Circle
                   x={pts[0]}
                   y={pts[1]}
-                  radius={6 / zoom}
-                  fill={isSel0 ? "#3b82f6" : "#e5e7eb"}
+                  radius={7 / zoom}
+                  fill={isSel0 ? "#3b82f6" : "#ffffff"}
                   stroke="#1f2937"
                   strokeWidth={1.5 / zoom}
+                  hitStrokeWidth={12 / zoom}
                   onClick={(e) => {
+                    e.cancelBubble = true;
+                    onSelectPoint(`${obj._id}:0`);
+                  }}
+                  onTap={(e) => {
                     e.cancelBubble = true;
                     onSelectPoint(`${obj._id}:0`);
                   }}
@@ -440,11 +478,16 @@ export function CanvasStage({
                 <Circle
                   x={pts[2]}
                   y={pts[3]}
-                  radius={6 / zoom}
-                  fill={isSel1 ? "#3b82f6" : "#e5e7eb"}
+                  radius={7 / zoom}
+                  fill={isSel1 ? "#3b82f6" : "#ffffff"}
                   stroke="#1f2937"
                   strokeWidth={1.5 / zoom}
+                  hitStrokeWidth={12 / zoom}
                   onClick={(e) => {
+                    e.cancelBubble = true;
+                    onSelectPoint(`${obj._id}:1`);
+                  }}
+                  onTap={(e) => {
                     e.cancelBubble = true;
                     onSelectPoint(`${obj._id}:1`);
                   }}

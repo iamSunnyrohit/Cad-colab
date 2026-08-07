@@ -1,5 +1,5 @@
 import React from "react";
-import { PeerPresence } from "@cad-collab/shared";
+import { PeerPresence, UserProfile } from "@cad-collab/shared";
 
 export type Tool = "select" | "pan" | "line" | "circle" | "rectangle";
 
@@ -8,8 +8,10 @@ interface Props {
   zoom?: number;
   gridSnap?: boolean;
   objectCount?: number;
+  currentUser?: UserProfile | null;
   onChange: (tool: Tool) => void;
   onSave: () => void;
+  onSignOut?: () => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
   onResetZoom?: () => void;
@@ -31,8 +33,10 @@ export function Toolbar({
   zoom = 1,
   gridSnap = false,
   objectCount = 0,
+  currentUser,
   onChange,
   onSave,
+  onSignOut,
   onZoomIn,
   onZoomOut,
   onResetZoom,
@@ -157,6 +161,50 @@ export function Toolbar({
             <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#6b7280", marginLeft: 4 }}>
               +{peers.length - 4}
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Authenticated user profile */}
+      {currentUser && (
+        <div style={{ display: "flex", alignItems: "center", gap: 8, paddingLeft: 8, borderLeft: "1px solid #e5e7eb" }}>
+          <div
+            style={{
+              width: 30,
+              height: 30,
+              borderRadius: "50%",
+              backgroundColor: currentUser.color || "#2563eb",
+              color: "#ffffff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+            }}
+          >
+            {currentUser.username[0].toUpperCase()}
+          </div>
+          <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "#111827" }}>
+            {currentUser.username}
+          </span>
+          {onSignOut && (
+            <button
+              onClick={onSignOut}
+              title="Sign out of your account"
+              style={{
+                padding: "4px 8px",
+                fontSize: "0.75rem",
+                borderRadius: 4,
+                border: "1px solid #d1d5db",
+                backgroundColor: "#f3f4f6",
+                color: "#374151",
+                cursor: "pointer",
+                fontWeight: 500
+              }}
+            >
+              Sign Out
+            </button>
           )}
         </div>
       )}

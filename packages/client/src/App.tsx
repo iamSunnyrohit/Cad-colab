@@ -1,28 +1,34 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Toolbar, Tool } from "./ui/Toolbar";
 import { CanvasStage } from "./canvas/CanvasStage";
+import { AuthModal } from "./ui/AuthModal";
 import { useOpQueue, CanvasObject } from "./state/opQueue";
 import { usePresence } from "./state/usePresence";
 import { createDocument, loadObjects, fetchMissedOps } from "./net/api";
+import { fetchCurrentUser, clearSavedToken } from "./net/authApi";
 import { io, Socket } from "socket.io-client";
 import { v4 as uuidv4 } from "uuid";
 import { OpSender } from "./net/opSender";
-import { CreateOp, AddConstraintOp, RemoveConstraintOp, Constraint } from "@cad-collab/shared";
+import { CreateOp, AddConstraintOp, RemoveConstraintOp, Constraint, UserProfile } from "@cad-collab/shared";
 
 // @ts-ignore
 import ConstraintSolverWorker from "./workers/constraintSolver.worker?worker";
 
 export default function App() {
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+  const [anonClientId] = useState(() => uuidv4());
   const [docId, setDocId] = useState<string | null>(null);
   const [tool, setTool] = useState<Tool>("select");
   const [zoom, setZoom] = useState(1);
   const [stageOffset, setStageOffset] = useState({ x: 0, y: 0 });
   const [gridSnap, setGridSnap] = useState(false);
   const [socket, setSocket] = useState<Socket | null>(null);
-  const [clientId] = useState(() => uuidv4());
+
+  const clientId = currentUser ? currentUser.id : anonClientId;
+  const userName = currentUser ? currentUser.username : undefined;
 
   const { objects, constraints, lastSyncedSeq, initObjects, applyLocalOp, applyServerOp, rollbackOp } = useOpQueue(clientId);
-  const { peers, connectionStatus, updateLocalCursor } = usePresence(socket, docId, clientId);
+  const { peers, connectionStatus, updateLocalCursor } = usePresence(socket, docId, clientId, userName);
   const [opSender, setOpSender] = useState<OpSender | null>(null);
 
   const [selectedPoints, setSelectedPoints] = useState<string[]>([]);
@@ -31,6 +37,20 @@ export default function App() {
 
   const activeDragRef = useRef<{ index: number; pointIndex?: number } | null>(null);
   const workerRef = useRef<Worker | null>(null);
+
+  // Check saved authentication token on initial load
+  useEffect(() => {
+    fetchCurrentUser().then((user) => {
+      if (user) {
+        setCurrentUser(user);
+      }
+    });
+  }, []);
+
+  const handleSignOut = () => {
+    clearSavedToken();
+    setCurrentUser(null);
+  };
 
   const handleZoomIn = () => setZoom(z => Math.min(5, Number((z * 1.2).toFixed(2))));
   const handleZoomOut = () => setZoom(z => Math.max(0.2, Number((z / 1.2).toFixed(2))));
@@ -399,14 +419,21 @@ export default function App() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", overflow: "hidden", fontFamily: "system-ui, -apple-system, sans-serif", backgroundColor: "#f9fafb" }}>
+      {/* Auth Modal overlay if not signed in */}
+      {!currentUser && (
+        <AuthModal onSuccess={(user) => setCurrentUser(user)} />
+      )}
+
       {/* Top toolbar */}
       <Toolbar
         tool={tool}
         zoom={zoom}
         gridSnap={gridSnap}
         objectCount={objects.length}
+        currentUser={currentUser}
         onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }}
         onSave={handleSave}
+        onSignOut={handleSignOut}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onResetZoom={handleResetZoom}

@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { connectDb } from "./config/db";
 import { documentsRouter } from "./routes/documents";
+import { authRouter } from "./routes/auth";
 import { registerConnectionHandlers } from "./sockets/connection";
 
 async function main() {
@@ -15,6 +16,7 @@ async function main() {
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
   app.use("/api/documents", documentsRouter);
+  app.use("/api/auth", authRouter);
 
   const httpServer = createServer(app);
   const io = new Server(httpServer, {

@@ -178,9 +178,10 @@ export function CanvasStage({
   };
 
   return (
-    <Stage
-      width={stageWidth}
-      height={stageHeight}
+    <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden" }}>
+      <Stage
+        width={stageWidth}
+        height={stageHeight}
       x={stageOffset.x}
       y={stageOffset.y}
       scaleX={zoom}
@@ -570,5 +571,37 @@ export function CanvasStage({
         })}
       </Layer>
     </Stage>
+
+    {/* Floating CAD Command Prompt HUD (Benchmarking UI Pattern) */}
+    <div style={{
+      position: "absolute",
+      bottom: 16,
+      left: "50%",
+      transform: "translateX(-50%)",
+      backgroundColor: "rgba(15, 23, 42, 0.85)",
+      backdropFilter: "blur(8px)",
+      padding: "8px 18px",
+      borderRadius: 20,
+      border: "1px solid #1f293d",
+      color: "#f8fafc",
+      fontSize: "0.8rem",
+      fontFamily: "'JetBrains Mono', monospace",
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      boxShadow: "0 4px 16px rgba(0,0,0,0.3)",
+      pointerEvents: "none",
+      zIndex: 20
+    }}>
+      <span style={{ color: "#38bdf8", fontWeight: 700 }}>COMMAND:</span>
+      <span style={{ color: "#e2e8f0" }}>
+        {tool === "select" ? "Select mode: Click shapes or handles to inspect properties | Drag to translate" :
+         tool === "line" ? "Line Tool: Click canvas stage to draw a parametric line segment" :
+         tool === "circle" ? "Circle Tool: Click canvas stage to draw a parametric circle" :
+         tool === "rectangle" ? "Rectangle Tool: Click canvas stage to draw a parametric rectangle" :
+         "Pan Tool: Drag canvas stage to navigate viewport"}
+      </span>
+    </div>
+  </div>
   );
 }

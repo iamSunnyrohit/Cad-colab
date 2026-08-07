@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from "react";
 import { Toolbar, ToolDock, Tool } from "./ui/Toolbar";
 import { Sidebar } from "./ui/Sidebar";
+import { FeatureTree } from "./ui/FeatureTree";
+import { ViewCube } from "./ui/ViewCube";
 import { CanvasStage } from "./canvas/CanvasStage";
 import { Canvas3DStage } from "./canvas/Canvas3DStage";
 import { AuthModal } from "./ui/AuthModal";
@@ -494,14 +496,27 @@ export default function App() {
         peers={peers}
       />
       
-      {/* Main CAD workspace (Left ToolDock + Canvas + Right Sidebar) */}
+      {/* Main CAD workspace (Left ToolDock + FeatureTree + Canvas + ViewCube + Right Sidebar) */}
       <div style={{ display: "flex", flex: 1, position: "relative", overflow: "hidden" }}>
         
-        {/* Left Tool Dock */}
+        {/* Left Quick Tool Dock */}
         <ToolDock tool={tool} onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }} />
+
+        {/* CAD Model Feature Tree Panel (Benchmarking UI Pattern) */}
+        <FeatureTree
+          objects={objects}
+          constraints={constraints}
+          selectedObjectIds={selectedObjectIds}
+          onSelectObject={handleSelectObject}
+          canvasMode={canvasMode}
+          extrudeDepth={extrudeDepth}
+        />
 
         {/* Drawing Canvas (2D Konva Stage vs 3D WebGL Three.js Viewport) */}
         <div style={{ flex: 1, position: "relative", backgroundColor: "#0b0f17" }}>
+          {/* Top-Right Navigation ViewCube */}
+          <ViewCube canvasMode={canvasMode} onResetZoom={handleResetZoom} />
+
           {canvasMode === "3D" ? (
             <Canvas3DStage
               objects={previewObjects || objects}

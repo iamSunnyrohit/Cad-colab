@@ -1,5 +1,10 @@
 const API_BASE = "http://localhost:4000/api";
 
+export async function listDocuments() {
+  const res = await fetch(`${API_BASE}/documents`);
+  return res.json();
+}
+
 export async function createDocument(name: string) {
   const res = await fetch(`${API_BASE}/documents`, {
     method: "POST",

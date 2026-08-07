@@ -11,6 +11,7 @@ interface Props {
   currentUser?: UserProfile | null;
   onChange: (tool: Tool) => void;
   onSave: () => void;
+  onNavigateHome?: () => void;
   onSignOut?: () => void;
   onZoomIn?: () => void;
   onZoomOut?: () => void;
@@ -36,6 +37,7 @@ export function Toolbar({
   currentUser,
   onChange,
   onSave,
+  onNavigateHome,
   onSignOut,
   onZoomIn,
   onZoomOut,
@@ -71,6 +73,30 @@ export function Toolbar({
 
   return (
     <div style={{ height: 56, display: "flex", alignItems: "center", gap: 8, padding: "0 16px", borderBottom: "1px solid #e5e7eb", backgroundColor: "#ffffff" }}>
+      {/* Dashboard Home Button */}
+      {onNavigateHome && (
+        <button
+          onClick={onNavigateHome}
+          title="Back to Home Dashboard"
+          style={{
+            padding: "6px 12px",
+            borderRadius: 6,
+            border: "1px solid #d1d5db",
+            background: "#f8fafc",
+            color: "#1e293b",
+            cursor: "pointer",
+            fontWeight: 600,
+            fontSize: "0.85rem",
+            display: "flex",
+            alignItems: "center",
+            gap: 6
+          }}
+        >
+          🏠 Dashboard
+        </button>
+      )}
+
+      {onNavigateHome && <div style={{ width: 1, height: 24, backgroundColor: "#e5e7eb", margin: "0 4px" }} />}
       {/* CAD Tool selection */}
       <div style={{ display: "flex", gap: 4 }}>
         {tools.map((t) => (

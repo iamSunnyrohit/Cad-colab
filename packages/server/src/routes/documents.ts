@@ -6,6 +6,25 @@ import { OperationModel } from "../models/Operation";
 
 export const documentsRouter = Router();
 
+// List all saved documents
+documentsRouter.get("/", async (_req, res) => {
+  const docs = await DocumentModel.find().sort({ updatedAt: -1 }).lean();
+  const results = await Promise.all(
+    docs.map(async (d) => {
+      const count = await ObjectEntity.countDocuments({ docId: d._id });
+      return {
+        _id: d._id,
+        name: d.name,
+        version: d.version,
+        objectCount: count,
+        createdAt: (d as any).createdAt,
+        updatedAt: (d as any).updatedAt
+      };
+    })
+  );
+  res.json(results);
+});
+
 // Create a new document
 documentsRouter.post("/", async (req, res) => {
   const { name } = req.body as { name?: string };

@@ -2,6 +2,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { Toolbar, Tool } from "./ui/Toolbar";
 import { CanvasStage } from "./canvas/CanvasStage";
 import { AuthModal } from "./ui/AuthModal";
+import { HomePage } from "./ui/HomePage";
 import { useOpQueue, CanvasObject } from "./state/opQueue";
 import { usePresence } from "./state/usePresence";
 import { createDocument, loadObjects, fetchMissedOps } from "./net/api";
@@ -15,6 +16,8 @@ import { CreateOp, AddConstraintOp, RemoveConstraintOp, Constraint, UserProfile 
 import ConstraintSolverWorker from "./workers/constraintSolver.worker?worker";
 
 export default function App() {
+  const [currentView, setCurrentView] = useState<"home" | "cad">("home");
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
   const [anonClientId] = useState(() => uuidv4());
   const [docId, setDocId] = useState<string | null>(null);
@@ -417,11 +420,30 @@ export default function App() {
     return `${label} ${parts[1]}`;
   };
 
+  if (currentView === "home") {
+    return (
+      <>
+        {showAuthModal && (
+          <AuthModal onSuccess={(user) => { setCurrentUser(user); setShowAuthModal(false); }} />
+        )}
+        <HomePage
+          currentUser={currentUser}
+          onOpenAuth={() => setShowAuthModal(true)}
+          onSignOut={handleSignOut}
+          onOpenDocument={(id) => {
+            setDocId(id);
+            setCurrentView("cad");
+          }}
+        />
+      </>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100vh", width: "100vw", overflow: "hidden", fontFamily: "system-ui, -apple-system, sans-serif", backgroundColor: "#f9fafb" }}>
-      {/* Auth Modal overlay if not signed in */}
-      {!currentUser && (
-        <AuthModal onSuccess={(user) => setCurrentUser(user)} />
+      {/* Auth Modal overlay */}
+      {showAuthModal && (
+        <AuthModal onSuccess={(user) => { setCurrentUser(user); setShowAuthModal(false); }} />
       )}
 
       {/* Top toolbar */}
@@ -433,6 +455,7 @@ export default function App() {
         currentUser={currentUser}
         onChange={(t) => { setTool(t); setSelectedPoints([]); setSelectedObjectIds([]); }}
         onSave={handleSave}
+        onNavigateHome={() => setCurrentView("home")}
         onSignOut={handleSignOut}
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}

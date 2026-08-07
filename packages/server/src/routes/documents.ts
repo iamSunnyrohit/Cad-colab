@@ -26,8 +26,9 @@ documentsRouter.get("/:docId/objects", async (req, res) => {
 
 // Save/create an object (Phase 0 stand-in for real op application)
 documentsRouter.post("/:docId/objects", async (req, res) => {
-  const { type, props } = req.body as { type: string; props: unknown };
+  const { id, _id, type, props } = req.body as { id?: string; _id?: string; type: string; props: unknown };
   const obj = await ObjectEntity.create({
+    _id: id || _id || crypto.randomUUID(),
     docId: req.params.docId,
     type,
     props,

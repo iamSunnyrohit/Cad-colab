@@ -4,6 +4,7 @@ import { Schema, model } from "mongoose";
 // Indexes here mirror what the design doc calls for once Phase 4 spatial queries land.
 const ObjectSchema = new Schema(
   {
+    _id: { type: String, required: true },
     docId: { type: String, required: true, index: true },
     type: { type: String, enum: ["line", "circle", "rectangle"], required: true },
     version: { type: Number, default: 0 },
